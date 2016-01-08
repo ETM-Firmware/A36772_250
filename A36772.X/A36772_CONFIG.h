@@ -74,8 +74,8 @@
 #endif
 
 // ----------- Gun Driver Load Specific Parameters ----------------------
-//#define __LOAD_LINAC_GUN
-#define __LOAD_RESISTIVE
+#define __LOAD_LINAC_GUN
+//#define __LOAD_RESISTIVE
 //#define __LOAD_TEST_GUN
 
 #ifndef __LOAD_LINAC_GUN
