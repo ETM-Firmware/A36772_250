@@ -93,9 +93,9 @@
 #ifdef  __LOAD_TEST_GUN
 #error "Multiple Loads Selected"
 #endif
-#define HEATER_RAMP_TIME                 24000
-#define MAX_RAMP_HTR_I                   1600           // 1.600 Amps
-#define HTR_OC_ABS                       1750           // 1.750 Amps
+#define HEATER_RAMP_TIME                 30000
+#define MAX_RAMP_HTR_I                   1650           // 1.650 Amps
+#define HTR_OC_ABS                       1800           // 1.800 Amps
 #define GUN_DRIVER_LOAD_TYPE             0
 #endif
 
@@ -103,9 +103,9 @@
 #ifdef  __LOAD_TEST_GUN
 #error "Multiple Loads Selected"
 #endif
-#define HEATER_RAMP_TIME                 24000
-#define MAX_RAMP_HTR_I                   1600           // 1.600 Amps
-#define HTR_OC_ABS                       1750           // 1.750 Amps
+#define HEATER_RAMP_TIME                 30000
+#define MAX_RAMP_HTR_I                   1650           // 1.650 Amps
+#define HTR_OC_ABS                       1800           // 1.800 Amps
 #define GUN_DRIVER_LOAD_TYPE             1
 #endif
 

@@ -1024,8 +1024,6 @@ void DoA36772(void) {
     _STATUS_CUSTOMER_HV_ON = 0;
   }
 
-  _FAULT_CAN_COMMUNICATION = ETMCanSlaveGetComFaultStatus();
-
 #endif
 
   if (_T2IF) {
@@ -1048,6 +1046,12 @@ void DoA36772(void) {
       global_data_A36772.reset_active = 1;
     } else {
       global_data_A36772.reset_active = 0;
+    }
+
+    if (ETMCanSlaveGetComFaultStatus()) {
+      _FAULT_CAN_COMMUNICATION = 1;
+    } else if (global_data_A36772.reset_active) {
+      _FAULT_CAN_COMMUNICATION = 0;
     }
 #endif
 
