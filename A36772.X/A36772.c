@@ -200,6 +200,7 @@ void DoStateMachine(void) {
     _CONTROL_NOT_READY = 1;
     DisableBeam();
     DisableHighVoltage();
+    _STATUS_HEATER_AT_OPERATING_VOLTAGE = 1;
     global_data_A36772.heater_start_up_attempts = 0;
     while (global_data_A36772.control_state == STATE_HEATER_WARM_UP_DONE) {
       DoA36772();
