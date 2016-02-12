@@ -239,6 +239,18 @@
 #define WATCHDOG_HIGH                                48000
 #define WATCHDOG_LOW                                 16000
 
+#define WATCHDOG_MODE_0         0
+#define WATCHDOG_MODE_1         1
+#define WATCHDOG_VALUE_0        0x1000
+#define WATCHDOG_VALUE_1        0xEFF0
+#define WATCHDOG_PERIOD         60                           //600ms
+#define WATCHDOG_TEST_TIME_1    ((WATCHDOG_PERIOD/3) - 2)    //180ms
+#define WATCHDOG_TEST_TIME_2    ((2*WATCHDOG_PERIOD/3) - 2)  //380ms
+#define WATCHDOG_TEST_TIME_3    (WATCHDOG_PERIOD - 2)
+   
+#define MAX_WD_VALUE_0          0x4000
+#define MIN_WD_VALUE_1          0xBFF0
+
 #define DAC_DIGITAL_OFF                              0x0000
 #define DAC_DIGITAL_ON                               0xFFFF
 

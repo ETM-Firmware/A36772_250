@@ -39,7 +39,7 @@ void DoA36772(void);
 */
 void UpdateFaults(void); // Update the fault bits based on analog/digital parameters
 void UpdateLEDandStatusOutuputs(void);  // Updates the LED and status outputs based on the system state
-
+void WatchdogCheck(void); // Checks for SPI communication fails
 /*
   Helper Function used to Enable/Disable Supplies on Converter logic board
 */
@@ -130,6 +130,7 @@ void DoStateMachine(void) {
     global_data_A36772.control_config = 0;
     global_data_A36772.heater_start_up_attempts = 0;
     global_data_A36772.run_time_counter = 0;
+    global_data_A36772.watchdog_counter = 0;
     global_data_A36772.watchdog_fault = 0;
 #ifndef __CAN_REFERENCE
     _CONTROL_NOT_CONFIGURED = 0;
@@ -1084,7 +1085,21 @@ void DoA36772(void) {
     // Start the next acquisition from the external ADC
     ADCStartAcquisition();
 
-    if (global_data_A36772.watchdog_counter >= 3) {
+    if (global_data_A36772.watchdog_counter >= WATCHDOG_PERIOD) {
+      global_data_A36772.watchdog_counter = 0;
+      global_data_A36772.watchdog_fault = 0;
+      global_data_A36772.watchdog_fault_count = 0;
+      if (global_data_A36772.watchdog_set_mode == WATCHDOG_MODE_0){
+        global_data_A36772.watchdog_set_mode = WATCHDOG_MODE_1;
+        global_data_A36772.dac_digital_watchdog_oscillator = WATCHDOG_VALUE_1;
+      } else {
+        global_data_A36772.watchdog_set_mode = WATCHDOG_MODE_0;
+        global_data_A36772.dac_digital_watchdog_oscillator = WATCHDOG_VALUE_0;
+      }
+    }
+    DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_H, global_data_A36772.dac_digital_watchdog_oscillator);    
+    
+/*     if (global_data_A36772.watchdog_counter >= 3) {
       global_data_A36772.watchdog_counter = 0;
       if (global_data_A36772.dac_digital_watchdog_oscillator < ((WATCHDOG_HIGH >> 1) + (WATCHDOG_LOW >> 1))) {
 	global_data_A36772.dac_digital_watchdog_oscillator = WATCHDOG_HIGH;
@@ -1092,7 +1107,7 @@ void DoA36772(void) {
 	global_data_A36772.dac_digital_watchdog_oscillator = WATCHDOG_LOW;
       }
     }
-    DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_H, global_data_A36772.dac_digital_watchdog_oscillator);
+    DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_H, global_data_A36772.dac_digital_watchdog_oscillator); */
     
     // Scale and Calibrate the internal ADC Readings
     ETMAnalogScaleCalibrateADCReading(&global_data_A36772.pot_htr);
@@ -1296,6 +1311,9 @@ void DoA36772(void) {
 	break;
       }
     }
+
+    // Check SPI Communication    
+    WatchdogCheck();
   
     // Update Faults
     UpdateFaults();
@@ -1474,6 +1492,58 @@ void UpdateFaults(void) {
     _FAULT_SPI_COMMUNICATION = 0;
   }  
   
+}
+
+
+void WatchdogCheck(void) {
+
+  unsigned int test = 0;
+  
+  if (global_data_A36772.watchdog_counter == WATCHDOG_TEST_TIME_1) {
+    test = 1;
+  }
+  if (global_data_A36772.watchdog_counter == WATCHDOG_TEST_TIME_2) {
+    test = 2;
+  }
+  if (global_data_A36772.watchdog_counter == WATCHDOG_TEST_TIME_3) {
+    test = 3;
+  } 
+  
+  if (global_data_A36772.watchdog_set_mode == WATCHDOG_MODE_0) {
+    if (test == 1 || test == 2 || test == 3) {
+      if (global_data_A36772.input_dac_monitor.filtered_adc_reading > MAX_WD_VALUE_0) {
+        global_data_A36772.watchdog_fault_count++;
+      } else {
+        if (global_data_A36772.watchdog_fault_count) {
+          global_data_A36772.watchdog_fault_count--;
+        }
+      }
+      if (test == 3) {
+        if (global_data_A36772.watchdog_fault_count) {
+          global_data_A36772.watchdog_fault = 1;
+        } else {
+          global_data_A36772.watchdog_fault = 0;
+        }
+      }
+    }
+  } else {
+    if (test == 1 || test == 2 || test == 3) {
+      if (global_data_A36772.input_dac_monitor.filtered_adc_reading < MIN_WD_VALUE_1) {
+        global_data_A36772.watchdog_fault_count++;
+      } else {
+        if (global_data_A36772.watchdog_fault_count) {
+          global_data_A36772.watchdog_fault_count--;
+        }
+      }
+      if (test == 3) {
+        if (global_data_A36772.watchdog_fault_count) {
+          global_data_A36772.watchdog_fault = 1;
+        } else {
+          global_data_A36772.watchdog_fault = 0;
+        }
+      }
+    }
+  }   
 }
 
 
