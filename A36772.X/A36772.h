@@ -261,6 +261,10 @@ typedef struct {
   unsigned int request_hv_enable;               // This indicates that hv_enable has been requested (either from CAN module or from discrete inputs depending upon configuration)
   unsigned int request_beam_enable;             // This indicates that beam_enable has been requested (either from CAN module or from discrete inputs depending upon configuration)
   unsigned int reset_active;                    // This indicates that reset has been requested (either from CAN module or from discrete inputs depending upon configuration)
+  unsigned int warmup_complete;                 // This indicates that the heater warmup timer has elapsed (from CAN module)
+  unsigned int set_current_reached;             // This is used to determine when the operating current has been reached
+  unsigned int heater_operational;              // This indicates when heater voltage set point is considered operational
+  volatile unsigned char control_config;        // This indicates when all set values from the CAN interface have been received
 
   unsigned int heater_start_up_attempts;        // This counts the number of times the heater has started up without successfully completing it's ramp up.
 
@@ -269,10 +273,11 @@ typedef struct {
   unsigned int power_supply_startup_remaining;  // This counts down the ramp up time of the HV supply
   unsigned int heater_warm_up_time_remaining;   // This counts down the heater warm up
   unsigned int heater_ramp_up_time;             // This counts the time it takes the heater to ramp up
-  unsigned int watchdog_counter;                // This counts when to updated the watchdog DAC output on the converter logic board
+  unsigned int watchdog_counter;                // This counts when to update the watchdog DAC output on the converter logic board
+  unsigned int watchdog_fault_count;            // This counts the watchdog misreads from the ADC on the converter logic board 
+  unsigned int watchdog_fault;                  // This is the watchdog fault condition for the SPI com fault
   unsigned int heater_ramp_interval;            // This counts the interval between heater ramp voltage changes
   unsigned int heater_voltage_target;           // This is the targeted heater voltage set point
-
 
 //  unsigned int can_com_timeout;                 // This indicates that CAN communication with the ECB has timed out
   unsigned int can_high_voltage_set_point;      // This is the high voltage set point set over the can interface (it is only used if can mode is selected)
@@ -378,23 +383,25 @@ extern TYPE_GLOBAL_DATA_A36772 global_data_A36772;
 #define _FAULT_FPGA_FIRMWARE_MAJOR_REV_MISMATCH        _FAULT_0 // CHECKED_DP// Heater Fault
 #define _FAULT_ADC_HV_V_MON_OVER_RELATIVE              _FAULT_1 // CHECKED_DP
 #define _FAULT_ADC_HV_V_MON_UNDER_RELATIVE             _FAULT_1 // CHECKED_DP
-#define _FAULT_ADC_HTR_V_MON_OVER_RELATIVE             _FAULT_2 // CHECKED_DP// Heater Fault
-#define _FAULT_ADC_HTR_V_MON_UNDER_RELATIVE            _FAULT_2 // CHECKED_DP// Heater Fault
-#define _FAULT_HEATER_VOLTAGE_CURRENT_LIMITED          _FAULT_3 // CHECKED_DP// Heater Fault
+#define _FAULT_ADC_HTR_V_MON_OVER_ABSOLUTE             _FAULT_2 // CHECKED_DP// Heater Fault
+#define _FAULT_ADC_HTR_V_MON_UNDER_ABSOLUTE            _FAULT_2 // CHECKED_DP// Heater Fault
+//#define _FAULT_HEATER_VOLTAGE_CURRENT_LIMITED          _FAULT_3 // CHECKED_DP// Heater Fault
 #define _FAULT_ADC_HTR_I_MON_OVER_ABSOLUTE             _FAULT_4 // CHECKED_DP// Heater Fault
-#define _FAULT_ADC_HTR_I_MON_UNDER_ABSOLUTE            _FAULT_4 // CHECKED_DP// Heater Fault
+//#define _FAULT_ADC_HTR_I_MON_UNDER_ABSOLUTE            _FAULT_4 // CHECKED_DP// Heater Fault
 #define _FAULT_ADC_TOP_V_MON_OVER_RELATIVE             _FAULT_5 // CHECKED_DP
 #define _FAULT_ADC_TOP_V_MON_UNDER_RELATIVE            _FAULT_5 // CHECKED_DP
 #define _FAULT_ADC_BIAS_V_MON_OVER_ABSOLUTE            _FAULT_6 // CHECKED_DP 
 #define _FAULT_ADC_BIAS_V_MON_UNDER_ABSOLUTE           _FAULT_6 // CHECKED_DP
-#define _FAULT_CAN_COMMUNICATION                       _FAULT_7
-#define _FAULT_ADC_DIGITAL_WATCHDOG                    _FAULT_8  // CHECKED_DP// This requires a FPGA Reset (Goto Heater Off State)
+//#define _FAULT_CAN_COMMUNICATION                       _FAULT_7
+//#define _FAULT_ADC_DIGITAL_WATCHDOG                    _FAULT_8  // CHECKED_DP// This requires a FPGA Reset (Goto Heater Off State)
 #define _FAULT_ADC_DIGITAL_ARC                         _FAULT_9  // CHECKED_DP// This requires HV OFF
 #define _FAULT_ADC_DIGITAL_OVER_TEMP                   _FAULT_A  // CHECKED_DP// This requires a FPGA Reset (Goto Heater Off State)
-#define _FAULT_ADC_DIGITAL_PULSE_WIDTH_DUTY            _FAULT_B  // CHECKED_DP// This requires HV OFF
+//#define _FAULT_ADC_DIGITAL_PULSE_WIDTH_DUTY            _FAULT_B  // CHECKED_DP// This requires HV OFF
+#define _FAULT_CAN_COMMUNICATION                       _FAULT_B
 #define _FAULT_ADC_DIGITAL_GRID                        _FAULT_C  // CHECKED_DP// This requires a FPGA Reset (Goto Heater Off State)
 #define _FAULT_CONVERTER_LOGIC_ADC_READ_FAILURE        _FAULT_D  // CHECKED_DP// Heater Fault
-#define _FAULT_HEATER_RAMP_TIMEOUT                     _FAULT_E  // CHECKED_DP// Heater Fault
+//#define _FAULT_HEATER_RAMP_TIMEOUT                     _FAULT_E  // CHECKED_DP// Heater Fault
+#define _FAULT_SPI_COMMUNICATION                       _FAULT_E
 #define _FAULT_HEATER_STARTUP_FAILURE                  _FAULT_F
 
 
@@ -403,15 +410,15 @@ extern TYPE_GLOBAL_DATA_A36772 global_data_A36772;
 #define _STATUS_ADC_DIGITAL_HEATER_NOT_READY           _WARNING_2
 #define _STATUS_DAC_WRITE_FAILURE                      _WARNING_3
 #define _STATUS_INTERLOCK_INHIBITING_HV                _WARNING_4
-#define _STATUS_HEATER_AT_OPERATING_VOLTAGE            _WARNING_5
+#define _STATUS_HEATER_AT_OPERATING_CURRENT            _WARNING_5
 #define _FPGA_CONVERTER_LOGIC_PCB_REV_MISMATCH         _WARNING_6
 #define _FPGA_FIRMWARE_MINOR_REV_MISMATCH              _WARNING_6
 #define _FPGA_ARC_COUNTER_GREATER_ZERO                 _WARNING_7
 #define _FPGA_ARC_HIGH_VOLTAGE_INHIBIT_ACTIVE          _WARNING_7
 #define _FPGA_MODULE_TEMP_GREATER_THAN_65_C            _WARNING_8
 #define _FPGA_MODULE_TEMP_GREATER_THAN_75_C            _WARNING_8
-#define _FPGA_PULSE_WIDTH_LIMITING                     _WARNING_9
-#define _FPGA_PRF_FAULT                                _WARNING_9
+//#define _FPGA_PULSE_WIDTH_LIMITING                     _WARNING_9
+//#define _FPGA_PRF_FAULT                                _WARNING_9
 #define _FPGA_CURRENT_MONITOR_PULSE_WIDTH_FAULT        _WARNING_A
 #define _FPGA_GRID_MODULE_HARDWARE_FAULT               _WARNING_B
 #define _FPGA_GRID_MODULE_OVER_VOLTAGE_FAULT           _WARNING_B
@@ -421,7 +428,7 @@ extern TYPE_GLOBAL_DATA_A36772 global_data_A36772;
 #define _FPGA_DIPSWITCH_1_ON                           _WARNING_D
 #define _FPGA_TEST_MODE_TOGGLE_SWITCH_TEST_MODE        _WARNING_E
 #define _FPGA_LOCAL_MODE_TOGGLE_SWITCH_LOCAL_MODE      _WARNING_F
-#define _FPGA_HEATER_VOLTAGE_LESS_THAN_4_5_VOLTS       _NOT_LOGGED_0
+//#define _FPGA_HEATER_VOLTAGE_LESS_THAN_4_5_VOLTS       _NOT_LOGGED_0
 
 
 

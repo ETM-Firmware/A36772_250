@@ -19,18 +19,17 @@ _FICD(PGD);
 //void ETMCanSpoofAFCHighSpeedDataLog();
 unsigned int next_pulse_count = 0;
 unsigned int spoof_counter = 0;
-volatile unsigned char control_config = 0;
-
 
 
 void DoStateMachine(void); // This handles the state machine for the interface board
 void InitializeA36772(void); // Initialize the A36772 for operation
 void DoStartupLEDs(void); // Used to flash the LEDs at startup
 void ResetAllFaultInfo(void); // Clears all fault/status bits and resets all fault/status counters
-unsigned int CheckHeaterFault(void);  // Check for any fault the requires the heater to be turned off
+unsigned int CheckHeaterFault(void);  // Check for any fault that requires the heater to be turned off
 unsigned int CheckFault(void); // Checks for any fault that does not require the heater to be turned off
 unsigned int CheckPreTopFault(void); // Same as CheckFault(), ignoring top under voltage fault
 unsigned int CheckPreHVFault(void); // Same as CheckFault(), ignoring hv and top under voltage faults
+unsigned int CheckRampingHeaterFault(void); //Faults for before heater warmup time elapses
 
 // Helper functions for DoA36772
 void DoA36772(void);
@@ -128,6 +127,7 @@ void DoStateMachine(void) {
     DisableHeater();
     _CONTROL_NOT_CONFIGURED = 1;
     _CONTROL_NOT_READY = 1;
+    global_data_A36772.control_config = 0;
     global_data_A36772.heater_start_up_attempts = 0;
     global_data_A36772.run_time_counter = 0;
 #ifndef __CAN_REFERENCE
@@ -145,14 +145,14 @@ void DoStateMachine(void) {
       DoA36772();
       DoStartupLEDs();
       if ((global_data_A36772.run_time_counter >= LED_STARTUP_FLASH_TIME) && (_CONTROL_NOT_CONFIGURED == 0)) {
-	global_data_A36772.control_state = STATE_RESET_FPGA;
+        global_data_A36772.control_state = STATE_RESET_FPGA;
       }
     }
     break;
     
+    
   case STATE_RESET_FPGA:
     ResetFPGA();
-    ResetAllFaultInfo();
     global_data_A36772.control_state = STATE_HEATER_RAMP_UP;
     break;
 
@@ -160,58 +160,60 @@ void DoStateMachine(void) {
   case STATE_HEATER_RAMP_UP:
     _CONTROL_NOT_READY = 1;
     global_data_A36772.analog_output_heater_voltage.set_point = 0;
+    global_data_A36772.set_current_reached = 0;
+    global_data_A36772.heater_ramp_interval = 0;
+    global_data_A36772.heater_operational = 0;
     global_data_A36772.heater_start_up_attempts++;
-    global_data_A36772.heater_ramp_up_time = MAX_HEATER_RAMP_UP_TIME;
     DisableBeam();
     DisableHighVoltage();
     EnableHeater();
     while (global_data_A36772.control_state == STATE_HEATER_RAMP_UP) {
       DoA36772();
-      if (global_data_A36772.analog_output_heater_voltage.set_point >= global_data_A36772.heater_voltage_target) {
-	global_data_A36772.control_state = STATE_HEATER_WARM_UP;
-      }
-      if (CheckHeaterFault()) {
-	global_data_A36772.control_state = STATE_FAULT_WARMUP_HEATER_OFF;
+      if (global_data_A36772.set_current_reached == 1) {
+        global_data_A36772.control_state == STATE_HEATER_WARM_UP
+      }      
+      if (CheckRampingHeaterFault()) {
+        global_data_A36772.control_state = STATE_FAULT_WARMUP_HEATER_OFF;
       }
     }
     break;
-  
-
+ 
+ 
   case STATE_HEATER_WARM_UP:
     _CONTROL_NOT_READY = 1;
     DisableBeam();
     DisableHighVoltage();
-    _STATUS_HEATER_AT_OPERATING_VOLTAGE = 1;
-    global_data_A36772.heater_ramp_up_time = 0;
-    global_data_A36772.heater_warm_up_time_remaining = HEATER_WARM_UP_TIME;
+    EnableHeater();
+    _STATUS_HEATER_AT_OPERATING_CURRENT = 1;
+    global_data_A36772.heater_operational = 0;
     while (global_data_A36772.control_state == STATE_HEATER_WARM_UP) {
       DoA36772();
-      if (global_data_A36772.heater_warm_up_time_remaining == 0) {
-	global_data_A36772.control_state = STATE_HEATER_WARM_UP_DONE;
-      }
-      if (CheckHeaterFault()) {
-	global_data_A36772.control_state = STATE_FAULT_WARMUP_HEATER_OFF;
+      if (global_data_A36772.warmup_complete) {
+        global_data_A36772.control_state = STATE_HEATER_WARM_UP_DONE;
+      }      
+      if (CheckRampingHeaterFault()) {
+        global_data_A36772.control_state = STATE_FAULT_WARMUP_HEATER_OFF;
       }
     }
-    break;
-
-
+  
   case STATE_HEATER_WARM_UP_DONE:
     _CONTROL_NOT_READY = 1;
     DisableBeam();
     DisableHighVoltage();
-    _STATUS_HEATER_AT_OPERATING_VOLTAGE = 1;
+    EnableHeater();
     global_data_A36772.heater_start_up_attempts = 0;
+    _STATUS_HEATER_AT_OPERATING_CURRENT = 1;
+    global_data_A36772.heater_operational = 1;
     while (global_data_A36772.control_state == STATE_HEATER_WARM_UP_DONE) {
       DoA36772();
       if (global_data_A36772.request_hv_enable) {
-	global_data_A36772.control_state = STATE_POWER_SUPPLY_RAMP_UP;
+        global_data_A36772.control_state = STATE_POWER_SUPPLY_RAMP_UP;
       }
       if (CheckPreHVFault()) {
-	global_data_A36772.control_state = STATE_FAULT_HEATER_ON;
+        global_data_A36772.control_state = STATE_FAULT_HEATER_ON;
       }
       if (CheckHeaterFault()) {
-	global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
+        global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
       }
     }
     break;
@@ -221,7 +223,8 @@ void DoStateMachine(void) {
     _CONTROL_NOT_READY = 1;
     DisableBeam();
     EnableHighVoltage();
-    global_data_A36772.power_supply_startup_remaining = GUN_DRIVER_POWER_SUPPLY_STATUP_TIME;
+    global_data_A36772.heater_operational = 1;
+    global_data_A36772.power_supply_startup_remaining = GUN_DRIVER_POWER_SUPPLY_STARTUP_TIME;
     while (global_data_A36772.control_state == STATE_POWER_SUPPLY_RAMP_UP) {
       DoA36772();
 
@@ -229,41 +232,22 @@ void DoStateMachine(void) {
         global_data_A36772.control_state = STATE_HV_ON;
       }      
       if (!global_data_A36772.request_hv_enable) {
-	global_data_A36772.control_state = STATE_HEATER_WARM_UP_DONE;
+        global_data_A36772.control_state = STATE_HEATER_WARM_UP_DONE;
       }
       if (CheckPreHVFault()) {
-	global_data_A36772.control_state = STATE_FAULT_HEATER_ON;
+        global_data_A36772.control_state = STATE_FAULT_HEATER_ON;
       }
       if (CheckHeaterFault()) {
-	global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
+        global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
       }
     }
     break;
-
-//  case STATE_HV_ON:
-//    DisableBeam();
-//    _CONTROL_NOT_READY = 1;
-//    while (global_data_A36772.control_state == STATE_HV_ON) {
-//      DoA36772();
-//      if (global_data_A36772.request_beam_enable) {
-//	global_data_A36772.control_state = STATE_BEAM_ENABLE;
-//      }
-//      if (!global_data_A36772.request_hv_enable) {
-//	global_data_A36772.control_state = STATE_HEATER_WARM_UP_DONE;
-//      }
-//      if (CheckFault()) {
-//	global_data_A36772.control_state = STATE_FAULT_HEATER_ON;
-//      }
-//      if (CheckHeaterFault()) {
-//	global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
-//      }
-//    }
-//    break;
 
 
   case STATE_HV_ON:
     _CONTROL_NOT_READY = 1;
     DisableBeam();
+    global_data_A36772.heater_operational = 1;
     _T3IF = 0;   //wait 1s before next state
     while (global_data_A36772.control_state == STATE_HV_ON) {
       DoA36772();
@@ -294,6 +278,7 @@ void DoStateMachine(void) {
     _CONTROL_NOT_READY = 1;
     DisableBeam();
     EnableTopSupply();
+    global_data_A36772.heater_operational = 1;
     _T3IF = 0;   //wait 1s before next state
     while (global_data_A36772.control_state == STATE_TOP_ON) {
       DoA36772();
@@ -320,6 +305,7 @@ void DoStateMachine(void) {
   case STATE_BEAM_ENABLE:
     EnableBeam();
     _CONTROL_NOT_READY = 0;
+    global_data_A36772.heater_operational = 1;
     while (global_data_A36772.control_state == STATE_BEAM_ENABLE) {
       DoA36772();
       if (!global_data_A36772.request_hv_enable) {
@@ -335,27 +321,6 @@ void DoStateMachine(void) {
     break;
 
 
-//  case STATE_BEAM_ENABLE:
-//    EnableBeam();
-//    _CONTROL_NOT_READY = 0;
-//    while (global_data_A36772.control_state == STATE_BEAM_ENABLE) {
-//      DoA36772();
-////      if (!global_data_A36772.request_beam_enable) {
-////	global_data_A36772.control_state = STATE_HV_ON;
-////      }
-//      if (!global_data_A36772.request_hv_enable) {
-//	global_data_A36772.control_state = STATE_HEATER_WARM_UP_DONE;
-//      }
-//      if (CheckFault()) {
-//	global_data_A36772.control_state = STATE_FAULT_HEATER_ON;
-//      }
-//      if (CheckHeaterFault()) {
-//	global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
-//      }
-//    }
-//    break;
-
-    
   case STATE_FAULT_HEATER_ON:
     _CONTROL_NOT_READY = 1;
     DisableBeam();
@@ -363,9 +328,7 @@ void DoStateMachine(void) {
     while (global_data_A36772.control_state == STATE_FAULT_HEATER_ON) {
       DoA36772();
       if (global_data_A36772.reset_active) {
-	ResetAllFaultInfo();
-	global_data_A36772.control_state = STATE_HEATER_WARM_UP_DONE;
-	global_data_A36772.reset_active = 0;
+	    global_data_A36772.control_state = STATE_HEATER_WARM_UP_DONE;
       }
     }
     break;
@@ -379,8 +342,7 @@ void DoStateMachine(void) {
     while (global_data_A36772.control_state == STATE_FAULT_HEATER_OFF) {
       DoA36772();
       if (global_data_A36772.reset_active) {
-	//ResetAllFaultInfo();
-	global_data_A36772.control_state = STATE_WAIT_FOR_CONFIG;
+        global_data_A36772.control_state = STATE_WAIT_FOR_CONFIG;
       }
     }
     break;
@@ -395,11 +357,10 @@ void DoStateMachine(void) {
     while (global_data_A36772.control_state == STATE_FAULT_WARMUP_HEATER_OFF) {
       DoA36772();
       if (global_data_A36772.fault_restart_remaining == 0) {
-	//ResetAllFaultInfo();
-	global_data_A36772.control_state = STATE_WAIT_FOR_CONFIG;
+        global_data_A36772.control_state = STATE_WAIT_FOR_CONFIG;
       }
       if (global_data_A36772.heater_start_up_attempts > MAX_HEATER_START_UP_ATTEMPTS) {
-	global_data_A36772.control_state = STATE_FAULT_HEATER_FAILURE;
+        global_data_A36772.control_state = STATE_FAULT_HEATER_FAILURE;
       }
     }
     break;
@@ -766,7 +727,7 @@ void InitializeA36772(void) {
   global_data_A36772.monitor_grid_voltage.enabled = 1;
   global_data_A36772.monitor_cathode_voltage.enabled = 1;
 
-  //ResetAllFaultInfo();
+  ResetAllFaultInfo();
 }
 
 
@@ -808,10 +769,9 @@ void ResetAllFaultInfo(void) {
   _FAULT_FPGA_FIRMWARE_MAJOR_REV_MISMATCH = 0;
   _FAULT_ADC_HV_V_MON_OVER_RELATIVE = 0;
   _FAULT_ADC_HV_V_MON_UNDER_RELATIVE = 0;
-  _FAULT_ADC_HTR_V_MON_OVER_RELATIVE = 0;
-  _FAULT_ADC_HTR_V_MON_UNDER_RELATIVE = 0;
+  _FAULT_ADC_HTR_V_MON_OVER_ABSOLUTE = 0;
+  _FAULT_ADC_HTR_V_MON_UNDER_ABSOLUTE = 0;
   _FAULT_ADC_HTR_I_MON_OVER_ABSOLUTE = 0;
-  _FAULT_ADC_HTR_I_MON_UNDER_ABSOLUTE = 0;
   _FAULT_ADC_TOP_V_MON_OVER_RELATIVE = 0;
   _FAULT_ADC_TOP_V_MON_UNDER_RELATIVE = 0;
   _FAULT_ADC_BIAS_V_MON_OVER_ABSOLUTE = 0;
@@ -912,21 +872,39 @@ void ResetAllFaultInfo(void) {
   global_data_A36772.dac_write_failure_count = 0;
 }
 
+unsigned int CheckRampingHeaterFault(void) {
+  unsigned int fault = 0;
+  fault  = _FAULT_FPGA_FIRMWARE_MAJOR_REV_MISMATCH;
+  fault |= _FAULT_ADC_HTR_V_MON_OVER_ABSOLUTE;
+  fault |= _FAULT_ADC_HTR_I_MON_OVER_ABSOLUTE;
+  fault |= _FAULT_ADC_DIGITAL_OVER_TEMP;
+  fault |= _FAULT_ADC_DIGITAL_GRID;
+  fault |= _FAULT_CONVERTER_LOGIC_ADC_READ_FAILURE;
+  fault |= _FAULT_SPI_COMMUNICATION;
+  fault |= _FAULT_CAN_COMMUNICATION;
+  if (fault) {
+    return 1;
+  } else {
+    return 0;
+  }
+}
 
 unsigned int CheckHeaterFault(void) {
   unsigned int fault = 0;
   fault  = _FAULT_FPGA_FIRMWARE_MAJOR_REV_MISMATCH;
-  fault |= _FAULT_ADC_HTR_V_MON_OVER_RELATIVE;
-  fault |= _FAULT_ADC_HTR_V_MON_UNDER_RELATIVE;
-  fault |= _FAULT_HEATER_VOLTAGE_CURRENT_LIMITED;
+//  fault |= _FAULT_ADC_HTR_V_MON_OVER_RELATIVE;
+//  fault |= _FAULT_ADC_HTR_V_MON_UNDER_RELATIVE;
+  fault |= _FAULT_ADC_HTR_V_MON_OVER_ABSOLUTE;
+  fault |= _FAULT_ADC_HTR_V_MON_UNDER_ABSOLUTE;
+//  fault |= _FAULT_HEATER_VOLTAGE_CURRENT_LIMITED;
   fault |= _FAULT_ADC_HTR_I_MON_OVER_ABSOLUTE;
-  fault |= _FAULT_ADC_HTR_I_MON_UNDER_ABSOLUTE;
-  fault |= _FAULT_ADC_DIGITAL_WATCHDOG;
+//  fault |= _FAULT_ADC_HTR_I_MON_UNDER_ABSOLUTE;
+//  fault |= _FAULT_ADC_DIGITAL_WATCHDOG;
   fault |= _FAULT_ADC_DIGITAL_OVER_TEMP;
   fault |= _FAULT_ADC_DIGITAL_GRID;
   fault |= _FAULT_CONVERTER_LOGIC_ADC_READ_FAILURE;
-  fault |= _FAULT_HEATER_RAMP_TIMEOUT;
-  fault |= _FAULT_HEATER_STARTUP_FAILURE;
+//  fault |= _FAULT_HEATER_RAMP_TIMEOUT;
+//  fault |= _FAULT_HEATER_STARTUP_FAILURE;
   fault |= _FAULT_CAN_COMMUNICATION;
   if (fault) {
     return 1;
@@ -1023,6 +1001,12 @@ void DoA36772(void) {
   } else {
     global_data_A36772.request_hv_enable = 0;
     _STATUS_CUSTOMER_HV_ON = 0;
+  }
+  
+  if (!ETMCanSlaveGetSyncMsgPulseSyncDisableHV()) {
+    global_data_A36772.warmup_complete = 1;
+  } else {
+    global_data_A36772.warmup_complete = 0;
   }
 
 #endif
@@ -1185,7 +1169,28 @@ void DoA36772(void) {
 #endif
 
     // Ramp the heater voltage
-    if (global_data_A36772.control_state == STATE_HEATER_RAMP_UP) {
+    global_data_A36772.heater_ramp_interval++;
+    if (!global_data_A36772.heater_operational) {
+      if (global_data_A36772.heater_ramp_interval >= HEATER_RAMP_UP_TIME_PERIOD) {
+        global_data_A36772.heater_ramp_interval = 0;
+        if (global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated < global_data_A36772.heater_current_target) {
+          global_data_A36772.analog_output_heater_voltage.set_point += HEATER_RAMP_UP_INCREMENT;           
+        } else {
+          global_data_A36772.set_current_reached = 1;
+          global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_FINE_VOLT_INCREMENT
+        }
+      }  
+    } else {
+      if (global_data_A36772.heater_ramp_interval >= HEATER_RAMP_UP_TIME_PERIOD) {
+        global_data_A36772.heater_ramp_interval = 0;
+        if (global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated < global_data_A36772.heater_current_target) {
+          global_data_A36772.analog_output_heater_voltage.set_point += HEATER_FINE_VOLT_INCREMENT;          
+        } else if (global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated > global_data_A36772.heater_current_target) {
+          global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_FINE_VOLT_INCREMENT;
+        }
+      }
+    }  
+/*     if (global_data_A36772.control_state == STATE_HEATER_RAMP_UP) {
       global_data_A36772.heater_voltage_current_limited = 0;
     }
     global_data_A36772.heater_ramp_interval++;
@@ -1205,7 +1210,7 @@ void DoA36772(void) {
     }
     if (global_data_A36772.analog_output_heater_voltage.set_point > global_data_A36772.heater_voltage_target) {
       global_data_A36772.analog_output_heater_voltage.set_point = global_data_A36772.heater_voltage_target;
-    }
+    } */
 
     // update the DAC programs based on the new set points.
     ETMAnalogScaleCalibrateDACSetting(&global_data_A36772.analog_output_high_voltage);
@@ -1336,10 +1341,6 @@ void UpdateFaults(void) {
   if (global_data_A36772.fpga_firmware_major_rev_mismatch.filtered_reading) {
     _FAULT_FPGA_FIRMWARE_MAJOR_REV_MISMATCH = 1;
   }
-   
-  if (global_data_A36772.heater_voltage_current_limited >= HEATER_VOLTAGE_CURRENT_LIMITED_FAULT_TIME) {
-    _FAULT_HEATER_VOLTAGE_CURRENT_LIMITED = 1;
-  }
  
   // Evaluate the readings from the Coverter Logic Board ADC
   if (global_data_A36772.adc_read_ok) {
@@ -1353,38 +1354,32 @@ void UpdateFaults(void) {
       _STATUS_ADC_DIGITAL_HEATER_NOT_READY = 0;
     }
     
-    if (global_data_A36772.adc_digital_watchdog_flt.filtered_reading == 0) {
-      _FAULT_ADC_DIGITAL_WATCHDOG = 1;
-    }
-    
     if (global_data_A36772.adc_digital_arc_flt.filtered_reading == 0) {
       _FAULT_ADC_DIGITAL_ARC = 1;
-    }
+    } else if (global_data_A36772.reset_active) {
+      _FAULT_ADC_DIGITAL_ARC = 0;
+    }  
     
     if (global_data_A36772.adc_digital_over_temp_flt.filtered_reading == 0) {
       _FAULT_ADC_DIGITAL_OVER_TEMP = 1;
-    }
-
-    if (global_data_A36772.adc_digital_pulse_width_duty_flt.filtered_reading == 0) {
-      _FAULT_ADC_DIGITAL_PULSE_WIDTH_DUTY = 1;
-    }
+    } else if (global_data_A36772.reset_active) {
+      _FAULT_ADC_DIGITAL_OVER_TEMP = 0;
+    }  
 
     if (global_data_A36772.adc_digital_grid_flt.filtered_reading == 0) {
       _FAULT_ADC_DIGITAL_GRID = 1;
-    }
+    } else if (global_data_A36772.reset_active) {
+      _FAULT_ADC_DIGITAL_GRID = 0;
+    }     
   
     // ------------------- Evaluate the analog readings from the Coverter Logic Board ADC ---------------------//
     global_data_A36772.input_htr_v_mon.target_value = global_data_A36772.analog_output_heater_voltage.set_point;
     global_data_A36772.input_hv_v_mon.target_value = global_data_A36772.analog_output_high_voltage.set_point;
     global_data_A36772.input_top_v_mon.target_value = global_data_A36772.analog_output_top_voltage.set_point;
 
-    // If the set point is less that 1.5 V clear the under current counter
+/*     // If the set point is less that 1.5 V clear the under current counter
     if (global_data_A36772.analog_output_heater_voltage.set_point < 1500) {
       global_data_A36772.input_htr_v_mon.absolute_under_counter = 0;
-    }
-    
-    if (global_data_A36772.control_state >= STATE_HEATER_WARM_UP) {
-      // ensure that the 
     }
 
     // If the high voltage is not on, clear the high voltage, top, and bias error counters
@@ -1393,36 +1388,41 @@ void UpdateFaults(void) {
       ETMAnalogClearFaultCounters(&global_data_A36772.input_top_v_mon);
       ETMAnalogClearFaultCounters(&global_data_A36772.input_bias_v_mon);
     }
-
+ */
     
     if (ETMAnalogCheckOverAbsolute(&global_data_A36772.input_htr_i_mon)) {
       _FAULT_ADC_HTR_I_MON_OVER_ABSOLUTE = 1;
+    } else if (global_data_A36772.reset_active) {
+      _FAULT_ADC_HTR_I_MON_OVER_ABSOLUTE = 0;
     }
 
-    // Only check for heater under current after the ramp up process is complete
-    if (global_data_A36772.control_state > STATE_HEATER_WARM_UP) {
-      if (ETMAnalogCheckUnderAbsolute(&global_data_A36772.input_htr_i_mon)) {
-	_FAULT_ADC_HTR_I_MON_UNDER_ABSOLUTE = 1;
+    if (ETMAnalogCheckOverAbsolute(&global_data_A36772.input_htr_v_mon)) {
+      _FAULT_ADC_HTR_V_MON_OVER_ABSOLUTE = 1;
+    } else if (global_data_A36772.reset_active) {
+      _FAULT_ADC_HTR_V_MON_OVER_ABSOLUTE = 0;
+    }
+    
+    if (global_data_A36772.control_state >= STATE_HEATER_WARM_UP_DONE) {    
+      if (ETMAnalogCheckUnderAbsolute(&global_data_A36772.input_htr_v_mon)) {
+        _FAULT_ADC_HTR_V_MON_UNDER_ABSOLUTE = 1;
       }
-    }
-
-    if (ETMAnalogCheckOverRelative(&global_data_A36772.input_htr_v_mon)) {
-      _FAULT_ADC_HTR_V_MON_OVER_RELATIVE = 1;
-    }
-      
-    if (ETMAnalogCheckUnderRelative(&global_data_A36772.input_htr_v_mon)) {
-      _FAULT_ADC_HTR_V_MON_UNDER_RELATIVE = 1;
-    }
+    } else if (global_data_A36772.reset_active) {
+      _FAULT_ADC_HTR_V_MON_UNDER_ABSOLUTE = 0;
+    }      
 
     if (ETMAnalogCheckOverRelative(&global_data_A36772.input_hv_v_mon)) {
       _FAULT_ADC_HV_V_MON_OVER_RELATIVE = 1;
+    } else if (global_data_A36772.reset_active) {
+      _FAULT_ADC_HV_V_MON_OVER_RELATIVE = 0;
     }
 
     // Only check for HV undervoltage after HV is enabled
-    if (global_data_A36772.control_state >= STATE_POWER_SUPPLY_RAMP_UP) {
+    if (global_data_A36772.control_state > STATE_POWER_SUPPLY_RAMP_UP) {
       if (ETMAnalogCheckUnderRelative(&global_data_A36772.input_hv_v_mon)) {
         _FAULT_ADC_HV_V_MON_UNDER_RELATIVE = 1;
       }
+    } else if (global_data_A36772.reset_active) {
+      _FAULT_ADC_HV_V_MON_UNDER_RELATIVE = 0;
     }
 
     // Only check for top supply overvoltage after top is enabled
@@ -1430,6 +1430,8 @@ void UpdateFaults(void) {
       if (ETMAnalogCheckOverRelative(&global_data_A36772.input_top_v_mon)) {
         _FAULT_ADC_TOP_V_MON_OVER_RELATIVE = 1;
       }
+    } else if (global_data_A36772.reset_active) {
+      _FAULT_ADC_TOP_V_MON_OVER_RELATIVE = 0;
     }
 
     // Only check for top supply overvoltage after top is enabled
@@ -1437,15 +1439,27 @@ void UpdateFaults(void) {
       if (ETMAnalogCheckUnderRelative(&global_data_A36772.input_top_v_mon)) {
         _FAULT_ADC_TOP_V_MON_UNDER_RELATIVE = 1;
       }
+    } else if (global_data_A36772.reset_active) {
+      _FAULT_ADC_TOP_V_MON_UNDER_RELATIVE = 0;
     }
 
     if (ETMAnalogCheckOverAbsolute(&global_data_A36772.input_bias_v_mon)) {
       _FAULT_ADC_BIAS_V_MON_OVER_ABSOLUTE = 1;
+    } else if (global_data_A36772.reset_active) {
+      _FAULT_ADC_BIAS_V_MON_OVER_ABSOLUTE = 0;
     }
     
     if (ETMAnalogCheckUnderAbsolute(&global_data_A36772.input_bias_v_mon)) {
       _FAULT_ADC_BIAS_V_MON_UNDER_ABSOLUTE = 1;
+    } else if (global_data_A36772.reset_active) {
+      _FAULT_ADC_BIAS_V_MON_UNDER_ABSOLUTE = 0;
     }
+    
+    if (global_data_A36772.watchdog_fault) {                 //latched Watchdog fault
+      _FAULT_SPI_COMMUNICATION = 1;
+    } else if (global_data_A36772.reset_active) {
+      _FAULT_SPI_COMMUNICATION = 0;
+    }  
 
   } 
 
@@ -1454,9 +1468,13 @@ void UpdateFaults(void) {
     _FAULT_CONVERTER_LOGIC_ADC_READ_FAILURE = 1; 
   }
   
-  if ((global_data_A36772.heater_ramp_up_time == 0) && (global_data_A36772.control_state == STATE_HEATER_RAMP_UP)) {
-    _FAULT_HEATER_RAMP_TIMEOUT = 1;
-  }
+
+  if (global_data_A36772.watchdog_fault) {                 //latched Watchdog fault
+    _FAULT_SPI_COMMUNICATION = 1;
+  } else if (global_data_A36772.reset_active) {
+    _FAULT_SPI_COMMUNICATION = 0;
+  }  
+  
 }
 
 
@@ -2229,8 +2247,8 @@ void ETMCanSlaveExecuteCMDBoardSpecific(ETMCanMessage* message_ptr) {
     case ETM_CAN_REGISTER_GUN_DRIVER_SET_1_GRID_TOP_SET_POINT:
       global_data_A36772.can_pulse_top_set_point = message_ptr->word1;
 //      // word0 for low Eg, not used
-      control_config |= 1;
-      if (control_config == 3){
+      global_data_A36772.control_config |= 1;
+      if (global_data_A36772.control_config == 3){
       _CONTROL_NOT_CONFIGURED = 0;
       }
       break;
@@ -2239,8 +2257,8 @@ void ETMCanSlaveExecuteCMDBoardSpecific(ETMCanMessage* message_ptr) {
       global_data_A36772.can_high_voltage_set_point = message_ptr->word1;
       global_data_A36772.can_heater_voltage_set_point = message_ptr->word0;
 
-      control_config |= 2;
-      if (control_config == 3){
+      global_data_A36772.control_config |= 2;
+      if (global_data_A36772.control_config == 3){
       _CONTROL_NOT_CONFIGURED = 0;
       }
       break;
