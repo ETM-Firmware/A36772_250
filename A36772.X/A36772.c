@@ -130,6 +130,7 @@ void DoStateMachine(void) {
     global_data_A36772.control_config = 0;
     global_data_A36772.heater_start_up_attempts = 0;
     global_data_A36772.run_time_counter = 0;
+    global_data_A36772.watchdog_fault = 0;
 #ifndef __CAN_REFERENCE
     _CONTROL_NOT_CONFIGURED = 0;
 #endif
@@ -170,7 +171,7 @@ void DoStateMachine(void) {
     while (global_data_A36772.control_state == STATE_HEATER_RAMP_UP) {
       DoA36772();
       if (global_data_A36772.set_current_reached == 1) {
-        global_data_A36772.control_state == STATE_HEATER_WARM_UP
+        global_data_A36772.control_state = STATE_HEATER_WARM_UP;
       }      
       if (CheckRampingHeaterFault()) {
         global_data_A36772.control_state = STATE_FAULT_WARMUP_HEATER_OFF;
@@ -776,18 +777,18 @@ void ResetAllFaultInfo(void) {
   _FAULT_ADC_TOP_V_MON_UNDER_RELATIVE = 0;
   _FAULT_ADC_BIAS_V_MON_OVER_ABSOLUTE = 0;
   _FAULT_ADC_BIAS_V_MON_UNDER_ABSOLUTE = 0;
-  _FAULT_ADC_DIGITAL_WATCHDOG = 0;
+//  _FAULT_ADC_DIGITAL_WATCHDOG = 0;
   _FAULT_ADC_DIGITAL_ARC = 0;
   _FAULT_ADC_DIGITAL_OVER_TEMP = 0;
-  _FAULT_ADC_DIGITAL_PULSE_WIDTH_DUTY = 0;
+//  _FAULT_ADC_DIGITAL_PULSE_WIDTH_DUTY = 0;
   _FAULT_ADC_DIGITAL_GRID = 0;
   _FAULT_CONVERTER_LOGIC_ADC_READ_FAILURE = 0;
-  _FAULT_HEATER_RAMP_TIMEOUT = 0;
+//  _FAULT_HEATER_RAMP_TIMEOUT = 0;
   _FAULT_HEATER_STARTUP_FAILURE = 0;
   _FAULT_CAN_COMMUNICATION = 0;
-
+  _FAULT_SPI_COMMUNICATION = 0;
   _STATUS_INTERLOCK_INHIBITING_HV = 0;
-  _STATUS_HEATER_AT_OPERATING_VOLTAGE = 0;
+  _STATUS_HEATER_AT_OPERATING_CURRENT = 0;
   _STATUS_CUSTOMER_HV_ON = 0;
   _STATUS_CUSTOMER_BEAM_ENABLE = 0;
   _STATUS_ADC_DIGITAL_HEATER_NOT_READY = 0;
@@ -797,11 +798,11 @@ void ResetAllFaultInfo(void) {
   _FPGA_FIRMWARE_MINOR_REV_MISMATCH              = 0;
   _FPGA_ARC_COUNTER_GREATER_ZERO                 = 0;
   _FPGA_ARC_HIGH_VOLTAGE_INHIBIT_ACTIVE          = 0;
-  _FPGA_HEATER_VOLTAGE_LESS_THAN_4_5_VOLTS       = 0;
+//  _FPGA_HEATER_VOLTAGE_LESS_THAN_4_5_VOLTS       = 0;
   _FPGA_MODULE_TEMP_GREATER_THAN_65_C            = 0;
   _FPGA_MODULE_TEMP_GREATER_THAN_75_C            = 0;
-  _FPGA_PULSE_WIDTH_LIMITING                     = 0;
-  _FPGA_PRF_FAULT                                = 0;
+//  _FPGA_PULSE_WIDTH_LIMITING                     = 0;
+//  _FPGA_PRF_FAULT                                = 0;
   _FPGA_CURRENT_MONITOR_PULSE_WIDTH_FAULT        = 0;
   _FPGA_GRID_MODULE_HARDWARE_FAULT               = 0;
   _FPGA_GRID_MODULE_OVER_VOLTAGE_FAULT           = 0;
@@ -905,6 +906,7 @@ unsigned int CheckHeaterFault(void) {
   fault |= _FAULT_CONVERTER_LOGIC_ADC_READ_FAILURE;
 //  fault |= _FAULT_HEATER_RAMP_TIMEOUT;
 //  fault |= _FAULT_HEATER_STARTUP_FAILURE;
+  fault |= _FAULT_SPI_COMMUNICATION;
   fault |= _FAULT_CAN_COMMUNICATION;
   if (fault) {
     return 1;
@@ -923,7 +925,6 @@ unsigned int CheckFault(void) {
   fault |= _FAULT_ADC_BIAS_V_MON_OVER_ABSOLUTE;
   fault |= _FAULT_ADC_BIAS_V_MON_UNDER_ABSOLUTE;
   fault |= _FAULT_ADC_DIGITAL_ARC;
-  fault |= _FAULT_ADC_DIGITAL_PULSE_WIDTH_DUTY;
   if (fault) {
     return 1;
   } else {
@@ -939,7 +940,6 @@ unsigned int CheckPreTopFault(void) {
   fault |= _FAULT_ADC_BIAS_V_MON_OVER_ABSOLUTE;
   fault |= _FAULT_ADC_BIAS_V_MON_UNDER_ABSOLUTE;
   fault |= _FAULT_ADC_DIGITAL_ARC;
-  fault |= _FAULT_ADC_DIGITAL_PULSE_WIDTH_DUTY;
   if (fault) {
     return 1;
   } else {
@@ -956,7 +956,6 @@ unsigned int CheckPreHVFault(void) {
   fault |= _FAULT_ADC_BIAS_V_MON_OVER_ABSOLUTE;
   fault |= _FAULT_ADC_BIAS_V_MON_UNDER_ABSOLUTE;
   fault |= _FAULT_ADC_DIGITAL_ARC;
-  fault |= _FAULT_ADC_DIGITAL_PULSE_WIDTH_DUTY;
   if (fault) {
     return 1;
   } else {
@@ -1129,7 +1128,7 @@ void DoA36772(void) {
     slave_board_data.log_data[6] = global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated;
     slave_board_data.log_data[7] = global_data_A36772.input_htr_v_mon.reading_scaled_and_calibrated;
     slave_board_data.log_data[8] = global_data_A36772.analog_output_high_voltage.set_point;
-    slave_board_data.log_data[9] = global_data_A36772.heater_voltage_target;
+    slave_board_data.log_data[9] = global_data_A36772.heater_current_target;
     slave_board_data.log_data[10] = global_data_A36772.analog_output_top_voltage.set_point;       //gdoc says low energy
     slave_board_data.log_data[11] = global_data_A36772.analog_output_top_voltage.set_point;       //gdoc says high energy
     slave_board_data.log_data[12] = global_data_A36772.input_bias_v_mon.reading_scaled_and_calibrated;
@@ -1164,7 +1163,7 @@ void DoA36772(void) {
 
     ETMAnalogSetOutput(&global_data_A36772.analog_output_high_voltage, global_data_A36772.can_high_voltage_set_point);
     ETMAnalogSetOutput(&global_data_A36772.analog_output_top_voltage, global_data_A36772.can_pulse_top_set_point);
-    global_data_A36772.heater_voltage_target                = global_data_A36772.can_heater_voltage_set_point;
+    global_data_A36772.heater_current_target = global_data_A36772.can_heater_current_set_point;
   
 #endif
 
@@ -1177,7 +1176,7 @@ void DoA36772(void) {
           global_data_A36772.analog_output_heater_voltage.set_point += HEATER_RAMP_UP_INCREMENT;           
         } else {
           global_data_A36772.set_current_reached = 1;
-          global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_FINE_VOLT_INCREMENT
+          global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_FINE_VOLT_INCREMENT;
         }
       }  
     } else {
@@ -1562,7 +1561,7 @@ void DisableHeater(void) {
   global_data_A36772.analog_output_heater_voltage.enabled = 0;
   global_data_A36772.dac_digital_heater_enable = DAC_DIGITAL_OFF;
   DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_E, global_data_A36772.dac_digital_heater_enable);
-  _STATUS_HEATER_AT_OPERATING_VOLTAGE = 0;
+  _STATUS_HEATER_AT_OPERATING_CURRENT = 0;
 }
 
 
@@ -1982,13 +1981,6 @@ void FPGAReadData(void) {
       _FPGA_ARC_HIGH_VOLTAGE_INHIBIT_ACTIVE = 0;
     }
 
-    // Check the heater voltage less than 4.5 Volts (NOT LATCHED)
-    ETMDigitalUpdateInput(&global_data_A36772.fpga_heater_voltage_less_than_4_5_volts, fpga_bits.heater_voltage_less_than_4_5_volts);
-    if (global_data_A36772.fpga_heater_voltage_less_than_4_5_volts.filtered_reading) {
-      _FPGA_HEATER_VOLTAGE_LESS_THAN_4_5_VOLTS = 1;
-    } else {
-      _FPGA_HEATER_VOLTAGE_LESS_THAN_4_5_VOLTS = 0;
-    }
 
     // Check module temp greater than 65 C (NOT LATCHED)
     ETMDigitalUpdateInput(&global_data_A36772.fpga_module_temp_greater_than_65_C, fpga_bits.module_temp_greater_than_65_C);
@@ -2006,21 +1998,6 @@ void FPGAReadData(void) {
       _FPGA_MODULE_TEMP_GREATER_THAN_75_C = 0;
     }
     
-    // Check Pulse Width Limiting (NOT LATCHED)
-    ETMDigitalUpdateInput(&global_data_A36772.fpga_pulse_width_limiting_active, fpga_bits.pulse_width_limiting_active);
-    if (global_data_A36772.fpga_pulse_width_limiting_active.filtered_reading) {
-      _FPGA_PULSE_WIDTH_LIMITING = 1;
-    } else {
-      _FPGA_PULSE_WIDTH_LIMITING = 0;
-    }
-    
-    // Check prf fault (NOT LATCHED)
-    ETMDigitalUpdateInput(&global_data_A36772.fpga_prf_fault, fpga_bits.prf_fault);
-    if (global_data_A36772.fpga_prf_fault.filtered_reading) {
-      _FPGA_PRF_FAULT = 1;
-    } else {
-      _FPGA_PRF_FAULT = 0;
-    }
 
     // Check Current Monitor Pulse Width Fault (NOT LATCHED)
     ETMDigitalUpdateInput(&global_data_A36772.fpga_current_monitor_pulse_width_fault, fpga_bits.current_monitor_pulse_width_fault);
@@ -2255,7 +2232,7 @@ void ETMCanSlaveExecuteCMDBoardSpecific(ETMCanMessage* message_ptr) {
 //
     case ETM_CAN_REGISTER_GUN_DRIVER_SET_1_HEATER_CATHODE_SET_POINT:
       global_data_A36772.can_high_voltage_set_point = message_ptr->word1;
-      global_data_A36772.can_heater_voltage_set_point = message_ptr->word0;
+      global_data_A36772.can_heater_current_set_point = message_ptr->word0;
 
       global_data_A36772.control_config |= 2;
       if (global_data_A36772.control_config == 3){

@@ -277,12 +277,12 @@ typedef struct {
   unsigned int watchdog_fault_count;            // This counts the watchdog misreads from the ADC on the converter logic board 
   unsigned int watchdog_fault;                  // This is the watchdog fault condition for the SPI com fault
   unsigned int heater_ramp_interval;            // This counts the interval between heater ramp voltage changes
-  unsigned int heater_voltage_target;           // This is the targeted heater voltage set point
+  unsigned int heater_current_target;           // This is the targeted heater current set point
 
 //  unsigned int can_com_timeout;                 // This indicates that CAN communication with the ECB has timed out
   unsigned int can_high_voltage_set_point;      // This is the high voltage set point set over the can interface (it is only used if can mode is selected)
   unsigned int can_pulse_top_set_point;         // This is the pulse top set point set over the can interface (it is only used if can mode is selected)
-  unsigned int can_heater_voltage_set_point;    // This is the heater voltage set point set over the can interface (it is only used if can mode is selected)
+  unsigned int can_heater_current_set_point;    // This is the heater current set point set over the can interface (it is only used if can mode is selected)
 
 
   unsigned int accumulator_counter;             // This counts the number of converstion on the internal ADC (used for averaging)
