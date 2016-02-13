@@ -241,14 +241,14 @@
 
 #define WATCHDOG_MODE_0         0
 #define WATCHDOG_MODE_1         1
-#define WATCHDOG_VALUE_0        0x1000
-#define WATCHDOG_VALUE_1        0xEFF0
-#define WATCHDOG_PERIOD         60                           //600ms
-#define WATCHDOG_TEST_TIME_1    ((WATCHDOG_PERIOD/3) - 2)    //180ms
-#define WATCHDOG_TEST_TIME_2    ((2*WATCHDOG_PERIOD/3) - 2)  //380ms
-#define WATCHDOG_TEST_TIME_3    (WATCHDOG_PERIOD - 2)
+#define WATCHDOG_VALUE_0        0x3201   //0x1000
+#define WATCHDOG_VALUE_1        0xCE3E   //0xEFF0
+#define WATCHDOG_PERIOD         30                           //300ms
+#define WATCHDOG_TEST_TIME_1    ((WATCHDOG_PERIOD/3) - 2)    //80ms
+#define WATCHDOG_TEST_TIME_2    ((2*WATCHDOG_PERIOD/3) - 2)  //180ms
+#define WATCHDOG_TEST_TIME_3    (WATCHDOG_PERIOD - 2)        //280ms
    
-#define MAX_WD_VALUE_0          0x4000
+#define MAX_WD_VALUE_0          0x4200
 #define MIN_WD_VALUE_1          0xBFF0
 
 #define DAC_DIGITAL_OFF                              0x0000
@@ -283,11 +283,12 @@ typedef struct {
   unsigned int run_time_counter;                // This counts how long the unit has been running for.  It wraps every 11 minutes
   unsigned int fault_restart_remaining;         // This counts down the delay of the heater automatic restart
   unsigned int power_supply_startup_remaining;  // This counts down the ramp up time of the HV supply
-  unsigned int heater_warm_up_time_remaining;   // This counts down the heater warm up
-  unsigned int heater_ramp_up_time;             // This counts the time it takes the heater to ramp up
+//  unsigned int heater_warm_up_time_remaining;   // This counts down the heater warm up
+  unsigned int initial_ramp_timer;              // This times out the initial heater ramp up
   unsigned int watchdog_counter;                // This counts when to update the watchdog DAC output on the converter logic board
   unsigned int watchdog_fault_count;            // This counts the watchdog misreads from the ADC on the converter logic board 
   unsigned int watchdog_fault;                  // This is the watchdog fault condition for the SPI com fault
+  unsigned int watchdog_set_mode;               // This is the DAC/ADC test setting for the SPI watchdog
   unsigned int heater_ramp_interval;            // This counts the interval between heater ramp voltage changes
   unsigned int heater_current_target;           // This is the targeted heater current set point
 

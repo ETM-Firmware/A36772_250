@@ -75,11 +75,11 @@
 
 // ----------- Gun Driver Load Specific Parameters ----------------------
 #define __LOAD_LINAC_GUN
-//#define __LOAD_RESISTIVE
+//#define __LOAD_TWT
 //#define __LOAD_TEST_GUN
 
 #ifndef __LOAD_LINAC_GUN
-#ifndef __LOAD_RESISTIVE
+#ifndef __LOAD_TWT
 #ifndef __LOAD_TEST_GUN
 #error "No Load Selected"
 #endif
@@ -87,7 +87,7 @@
 #endif
 
 #ifdef __LOAD_LINAC_GUN
-#ifdef  __LOAD_RESISTIVE
+#ifdef  __LOAD_TWT
 #error "Multiple Loads Selected"
 #endif
 #ifdef  __LOAD_TEST_GUN
@@ -95,17 +95,19 @@
 #endif
 #define HEATER_RAMP_TIME                 30000
 #define MAX_RAMP_HTR_I                   1650           // 1.650 Amps
-#define HTR_OC_ABS                       1800           // 1.800 Amps
+#define HTR_OC_ABS                       1750           // 1.750 Amps
+#define HTR_OV_ABS                       6250           // 6.25V
 #define GUN_DRIVER_LOAD_TYPE             0
 #endif
 
-#ifdef __LOAD_RESISTIVE
+#ifdef __LOAD_TWT
 #ifdef  __LOAD_TEST_GUN
 #error "Multiple Loads Selected"
 #endif
 #define HEATER_RAMP_TIME                 30000
 #define MAX_RAMP_HTR_I                   1650           // 1.650 Amps
-#define HTR_OC_ABS                       1800           // 1.800 Amps
+#define HTR_OC_ABS                       1750           // 1.750 Amps
+#define HTR_OV_ABS                       7000           // 7 V
 #define GUN_DRIVER_LOAD_TYPE             1
 #endif
 
@@ -113,6 +115,7 @@
 #define HEATER_RAMP_TIME                 60000
 #define MAX_RAMP_HTR_I                   3000           // 3.000 Amps
 #define HTR_OC_ABS                       3200           // 3.200 Amps
+#define HTR_OV_ABS                       6250           // 6.25V
 #define GUN_DRIVER_LOAD_TYPE             2
 #endif
 
@@ -120,10 +123,11 @@
 
 // ----------- Timers configurations - ALL Times are in 10ms Units --------------------
 #define LED_STARTUP_FLASH_TIME                500      // Time LEDs will flash at startup
-#define MAX_HEATER_RAMP_UP_TIME               HEATER_RAMP_TIME    // If the heater does not reach it's programed voltage in this time a fault will be generated
+//#define MAX_HEATER_RAMP_UP_TIME               HEATER_RAMP_TIME    // If the heater does not reach it's programed voltage in this time a fault will be generated
 #define HEATER_AUTO_RESTART_TIME              500      // Time delay between a heater fault and when the heater gets restarted
 #define HEATER_RAMP_UP_TIME_PERIOD            5        // Durring heater ramp up, the heater voltage will be increased every N 10ms (see HEATER_RAMP_UP_INCREMENT)
 #define GUN_DRIVER_POWER_SUPPLY_STARTUP_TIME  100      // Wait this long between enabling High Voltage / Pulse Top / Bias and cheching that they are at correct values
+#define MAX_INITIAL_RAMP_TIME                 6000     // Timeout initial ramp if operational current never reached
 
 // System control Parameters
 //#define MAX_HEATER_CURRENT_DURING_RAMP_UP     MAX_RAMP_HTR_I     // mA Units.  Whenever the heater voltage is increased (ramp-up or increasing the set point).  The voltage will be current limited by this current
@@ -135,14 +139,14 @@
 
 
 
-#define HEATER_VOLTAGE_CURRENT_LIMITED_FAULT_TIME (500 / HEATER_RAMP_UP_TIME_PERIOD)  // 5 Seconds
+//#define HEATER_VOLTAGE_CURRENT_LIMITED_FAULT_TIME (500 / HEATER_RAMP_UP_TIME_PERIOD)  // 5 Seconds
 
 
-#ifdef __CAN_CONTROLS
-#define HEATER_WARM_UP_TIME 100 //18000     // In Can control mode the heater warm up time is enforced by the ECB
-#else
-#define HEATER_WARM_UP_TIME 12000 // 2 minutes
-#endif
+//#ifdef __CAN_CONTROLS
+//#define HEATER_WARM_UP_TIME 100 //18000     // In Can control mode the heater warm up time is enforced by the ECB
+//#else
+//#define HEATER_WARM_UP_TIME 12000 // 2 minutes
+//#endif
 
 
 
@@ -173,15 +177,15 @@
 
 #define ADC_HTR_V_MON_FIXED_SCALE             .13875
 #define ADC_HTR_V_MON_FIXED_OFFSET            0
-#define ADC_HTR_V_MON_RELATIVE_TRIP_SCALE     MACRO_DEC_TO_CAL_FACTOR_2(.2)
-#define ADC_HTR_V_MON_RELATIVE_TRIP_FLOOR     200                               // Minimum 200mV
-#define ADC_HTR_V_MON_RELATIVE_TRIP_COUNT     50                                // 500mS
+#define	ADC_HTR_V_MON_OVER_LIMIT_ABSOLUTE     HTR_OV_ABS
+#define	ADC_HTR_V_MON_UNDER_LIMIT_ABSOLUTE    4000
+#define ADC_HTR_V_MON_ABSOLUTE_TRIP_TIME      50                                // 500mS
 
 
 #define ADC_HTR_I_MON_FIXED_SCALE             .10419
 #define ADC_HTR_I_MON_FIXED_OFFSET            0
 #define ADC_HTR_I_MON_OVER_LIMIT_ABSOLUTE     HTR_OC_ABS                        // 1.750 Amps
-#define ADC_HTR_I_MON_UNDER_LIMIT_ABSOLUTE    200                               // 0.200 Amps
+//#define ADC_HTR_I_MON_UNDER_LIMIT_ABSOLUTE    200                               // 0.200 Amps
 #define ADC_HTR_I_MON_ABSOLUTE_TRIP_TIME      50                                // 500mS
 
 

@@ -127,6 +127,7 @@ void DoStateMachine(void) {
     DisableHeater();
     _CONTROL_NOT_CONFIGURED = 1;
     _CONTROL_NOT_READY = 1;
+    global_data_A36772.watchdog_set_mode = WATCHDOG_MODE_0;
     global_data_A36772.control_config = 0;
     global_data_A36772.heater_start_up_attempts = 0;
     global_data_A36772.run_time_counter = 0;
@@ -166,6 +167,7 @@ void DoStateMachine(void) {
     global_data_A36772.heater_ramp_interval = 0;
     global_data_A36772.heater_operational = 0;
     global_data_A36772.heater_start_up_attempts++;
+    global_data_A36772.initial_ramp_timer = 0;
     DisableBeam();
     DisableHighVoltage();
     EnableHeater();
@@ -173,7 +175,10 @@ void DoStateMachine(void) {
       DoA36772();
       if (global_data_A36772.set_current_reached == 1) {
         global_data_A36772.control_state = STATE_HEATER_WARM_UP;
-      }      
+      }
+      if (global_data_A36772.initial_ramp_timer > MAX_INITIAL_RAMP_TIME) {
+        global_data_A36772.control_state = STATE_FAULT_WARMUP_HEATER_OFF;
+      }
       if (CheckRampingHeaterFault()) {
         global_data_A36772.control_state = STATE_FAULT_WARMUP_HEATER_OFF;
       }
@@ -514,19 +519,19 @@ void InitializeA36772(void) {
 			   MACRO_DEC_TO_SCALE_FACTOR_16(ADC_HTR_V_MON_FIXED_SCALE),
 			   ADC_HTR_V_MON_FIXED_OFFSET,
 			   ANALOG_INPUT_3,
-			   NO_OVER_TRIP,
-			   NO_UNDER_TRIP,
-			   ADC_HTR_V_MON_RELATIVE_TRIP_SCALE,
-			   ADC_HTR_V_MON_RELATIVE_TRIP_FLOOR,
-			   ADC_HTR_V_MON_RELATIVE_TRIP_COUNT,
-			   NO_ABSOLUTE_COUNTER);
+			   ADC_HTR_V_MON_OVER_LIMIT_ABSOLUTE,
+			   ADC_HTR_V_MON_UNDER_LIMIT_ABSOLUTE,
+			   NO_TRIP_SCALE,
+			   NO_FLOOR,
+			   NO_RELATIVE_COUNTER,
+			   ADC_HTR_V_MON_ABSOLUTE_TRIP_TIME);
 
   ETMAnalogInitializeInput(&global_data_A36772.input_htr_i_mon,
 			   MACRO_DEC_TO_SCALE_FACTOR_16(ADC_HTR_I_MON_FIXED_SCALE),
 			   ADC_HTR_I_MON_FIXED_OFFSET,
 			   ANALOG_INPUT_4,
 			   ADC_HTR_I_MON_OVER_LIMIT_ABSOLUTE,
-			   ADC_HTR_I_MON_UNDER_LIMIT_ABSOLUTE,
+			   NO_UNDER_TRIP,
 			   NO_TRIP_SCALE,
 			   NO_FLOOR,
 			   NO_RELATIVE_COUNTER,
@@ -1055,17 +1060,11 @@ void DoA36772(void) {
       global_data_A36772.power_supply_startup_remaining--;
     }
 
-    if (global_data_A36772.heater_warm_up_time_remaining) {
-      global_data_A36772.heater_warm_up_time_remaining--;
-    }
-
-    if (global_data_A36772.heater_ramp_up_time) {
-      global_data_A36772.heater_ramp_up_time--;
-    }
-
     if (global_data_A36772.fault_restart_remaining) {
       global_data_A36772.fault_restart_remaining--;
     }
+
+    global_data_A36772.initial_ramp_timer++;
 
     global_data_A36772.watchdog_counter++;
     global_data_A36772.run_time_counter++;
@@ -1126,11 +1125,11 @@ void DoA36772(void) {
     //ETMCanSlaveSetDebugRegister(0xE, global_data_A36772.ref_vtop.reading_scaled_and_calibrated);
     //ETMCanSlaveSetDebugRegister(0xF, global_data_A36772.ref_ek.reading_scaled_and_calibrated);
 
-    ETMCanSlaveSetDebugRegister(0xA, global_data_A36772.run_time_counter);
-    ETMCanSlaveSetDebugRegister(0xB, global_data_A36772.fault_restart_remaining);
-    ETMCanSlaveSetDebugRegister(0xC, global_data_A36772.power_supply_startup_remaining);
-    ETMCanSlaveSetDebugRegister(0xD, global_data_A36772.heater_warm_up_time_remaining);
-    ETMCanSlaveSetDebugRegister(0xE, global_data_A36772.heater_ramp_up_time);
+    ETMCanSlaveSetDebugRegister(0xA, global_data_A36772.input_bias_v_mon.reading_scaled_and_calibrated);//global_data_A36772.run_time_counter);
+    ETMCanSlaveSetDebugRegister(0xB, global_data_A36772.warmup_complete);//global_data_A36772.fault_restart_remaining);
+    ETMCanSlaveSetDebugRegister(0xC, _FAULT_ADC_BIAS_V_MON_UNDER_ABSOLUTE);//global_data_A36772.dac_digital_watchdog_oscillator);
+    ETMCanSlaveSetDebugRegister(0xD, global_data_A36772.initial_ramp_timer);
+    ETMCanSlaveSetDebugRegister(0xE, _STATUS_HEATER_AT_OPERATING_CURRENT);
     ETMCanSlaveSetDebugRegister(0xF, global_data_A36772.control_state);
     
 
@@ -1139,7 +1138,7 @@ void DoA36772(void) {
     slave_board_data.log_data[2] = global_data_A36772.input_top_v_mon.reading_scaled_and_calibrated;    //gdoc says low energy
     slave_board_data.log_data[3] = global_data_A36772.input_top_v_mon.reading_scaled_and_calibrated;    //gdoc says high energy
     slave_board_data.log_data[4] = global_data_A36772.input_temperature_mon.reading_scaled_and_calibrated;
-    slave_board_data.log_data[5] = global_data_A36772.heater_warm_up_time_remaining;
+    slave_board_data.log_data[5] = global_data_A36772.initial_ramp_timer;
     slave_board_data.log_data[6] = global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated;
     slave_board_data.log_data[7] = global_data_A36772.input_htr_v_mon.reading_scaled_and_calibrated;
     slave_board_data.log_data[8] = global_data_A36772.analog_output_high_voltage.set_point;
@@ -1829,11 +1828,11 @@ void UpdateADCResults(void) {
       ETMDigitalUpdateInput(&global_data_A36772.adc_digital_warmup_flt, 0);
     }
     
-    if (read_data[11] > ADC_DATA_DIGITAL_HIGH) {
-      ETMDigitalUpdateInput(&global_data_A36772.adc_digital_watchdog_flt, 1);
-    } else {
-      ETMDigitalUpdateInput(&global_data_A36772.adc_digital_watchdog_flt, 0);
-    }
+//    if (read_data[11] > ADC_DATA_DIGITAL_HIGH) {
+//      ETMDigitalUpdateInput(&global_data_A36772.adc_digital_watchdog_flt, 1);
+//    } else {
+//      ETMDigitalUpdateInput(&global_data_A36772.adc_digital_watchdog_flt, 0);
+//    }
     
     if (read_data[12] > ADC_DATA_DIGITAL_HIGH) {
       ETMDigitalUpdateInput(&global_data_A36772.adc_digital_arc_flt, 1);
@@ -1847,11 +1846,11 @@ void UpdateADCResults(void) {
       ETMDigitalUpdateInput(&global_data_A36772.adc_digital_over_temp_flt, 0);
     }
     
-    if (read_data[14] > ADC_DATA_DIGITAL_HIGH) {
-      ETMDigitalUpdateInput(&global_data_A36772.adc_digital_pulse_width_duty_flt, 1);
-    } else {
-      ETMDigitalUpdateInput(&global_data_A36772.adc_digital_pulse_width_duty_flt, 0);
-    }
+//    if (read_data[14] > ADC_DATA_DIGITAL_HIGH) {
+//      ETMDigitalUpdateInput(&global_data_A36772.adc_digital_pulse_width_duty_flt, 1);
+//    } else {
+//      ETMDigitalUpdateInput(&global_data_A36772.adc_digital_pulse_width_duty_flt, 0);
+//    }
     
     if (read_data[15] > ADC_DATA_DIGITAL_HIGH) {
       ETMDigitalUpdateInput(&global_data_A36772.adc_digital_grid_flt, 1);
