@@ -1158,18 +1158,15 @@ void DoA36772(void) {
     // The set points should be based on the pots
     ETMAnalogSetOutput(&global_data_A36772.analog_output_high_voltage, global_data_A36772.pot_ek.reading_scaled_and_calibrated);
     ETMAnalogSetOutput(&global_data_A36772.analog_output_top_voltage, global_data_A36772.pot_vtop.reading_scaled_and_calibrated);
-    global_data_A36772.heater_voltage_target                = global_data_A36772.pot_htr.reading_scaled_and_calibrated;
-    //global_data_A36772.analog_output_high_voltage.set_point = global_data_A36772.pot_ek.reading_scaled_and_calibrated;
-    //global_data_A36772.analog_output_top_voltage.set_point  = global_data_A36772.pot_vtop.reading_scaled_and_calibrated;
- #endif
+    global_data_A36772.heater_voltage_target = global_data_A36772.pot_htr.reading_scaled_and_calibrated;
+ 
+#endif
 
 #ifdef __DISCRETE_REFERENCE
     // The set points should be based on the analog references
     ETMAnalogSetOutput(&global_data_A36772.analog_output_high_voltage, global_data_A36772.ref_ek.reading_scaled_and_calibrated);
     ETMAnalogSetOutput(&global_data_A36772.analog_output_top_voltage, global_data_A36772.ref_vtop.reading_scaled_and_calibrated);
-    global_data_A36772.heater_voltage_target                = global_data_A36772.ref_htr.reading_scaled_and_calibrated;    
-    //global_data_A36772.analog_output_high_voltage.set_point = global_data_A36772.ref_ek.reading_scaled_and_calibrated;
-    //global_data_A36772.analog_output_top_voltage.set_point  = global_data_A36772.ref_vtop.reading_scaled_and_calibrated;
+    global_data_A36772.heater_voltage_target = global_data_A36772.ref_htr.reading_scaled_and_calibrated;    
 
 #endif
 
@@ -1180,6 +1177,10 @@ void DoA36772(void) {
     global_data_A36772.heater_current_target = global_data_A36772.can_heater_current_set_point;
   
 #endif
+
+    if (global_data_A36772.heater_current_target > MAX_PROGRAM_HTR_CURRENT) {
+      global_data_A36772.heater_current_target = MAX_PROGRAM_HTR_CURRENT;
+    }
 
     // Ramp the heater voltage
     global_data_A36772.heater_ramp_interval++;

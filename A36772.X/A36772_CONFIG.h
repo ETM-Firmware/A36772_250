@@ -94,6 +94,7 @@
 #error "Multiple Loads Selected"
 #endif
 #define HEATER_RAMP_TIME                 30000
+#define MAX_PROGRAM_HTR_CURRENT          1600           // 1.6 Amps
 #define MAX_RAMP_HTR_I                   1650           // 1.650 Amps
 #define HTR_OC_ABS                       1750           // 1.750 Amps
 #define HTR_OV_ABS                       6250           // 6.25V
@@ -105,6 +106,7 @@
 #error "Multiple Loads Selected"
 #endif
 #define HEATER_RAMP_TIME                 30000
+#define MAX_PROGRAM_HTR_CURRENT          1600           // 1.6 Amps
 #define MAX_RAMP_HTR_I                   1650           // 1.650 Amps
 #define HTR_OC_ABS                       1750           // 1.750 Amps
 #define HTR_OV_ABS                       7000           // 7 V
@@ -113,6 +115,7 @@
 
 #ifdef __LOAD_TEST_GUN
 #define HEATER_RAMP_TIME                 60000
+#define MAX_PROGRAM_HTR_CURRENT          3100           // 3.1 Amps
 #define MAX_RAMP_HTR_I                   3000           // 3.000 Amps
 #define HTR_OC_ABS                       3200           // 3.200 Amps
 #define HTR_OV_ABS                       6250           // 6.25V
