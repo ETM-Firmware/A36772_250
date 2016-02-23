@@ -1130,10 +1130,10 @@ void DoA36772(void) {
     //ETMCanSlaveSetDebugRegister(0xE, global_data_A36772.ref_vtop.reading_scaled_and_calibrated);
     //ETMCanSlaveSetDebugRegister(0xF, global_data_A36772.ref_ek.reading_scaled_and_calibrated);
 
-    ETMCanSlaveSetDebugRegister(0xA, global_data_A36772.input_bias_v_mon.reading_scaled_and_calibrated);//global_data_A36772.run_time_counter);
-    ETMCanSlaveSetDebugRegister(0xB, global_data_A36772.watchdog_set_mode);//global_data_A36772.warmup_complete);//global_data_A36772.fault_restart_remaining);
-    ETMCanSlaveSetDebugRegister(0xC, global_data_A36772.input_dac_monitor.filtered_adc_reading);//_FAULT_ADC_BIAS_V_MON_UNDER_ABSOLUTE);
-    ETMCanSlaveSetDebugRegister(0xD, global_data_A36772.watchdog_counter);
+    ETMCanSlaveSetDebugRegister(0xA, global_data_A36772.analog_output_heater_voltage.enabled);//global_data_A36772.run_time_counter);
+    ETMCanSlaveSetDebugRegister(0xB, _FAULT_ADC_TOP_V_MON_UNDER_RELATIVE);//global_data_A36772.warmup_complete);//global_data_A36772.fault_restart_remaining);
+    ETMCanSlaveSetDebugRegister(0xC, _FAULT_ADC_TOP_V_MON_OVER_RELATIVE);//_FAULT_ADC_BIAS_V_MON_UNDER_ABSOLUTE);
+    ETMCanSlaveSetDebugRegister(0xD, _FPGA_HEATER_VOLTAGE_LESS_THAN_4_5_VOLTS);
     ETMCanSlaveSetDebugRegister(0xE, global_debug);
     ETMCanSlaveSetDebugRegister(0xF, global_data_A36772.control_state);
     
@@ -2084,6 +2084,14 @@ void FPGAReadData(void) {
     } else {
       _FPGA_CURRENT_MONITOR_PULSE_WIDTH_FAULT = 0;
     }
+    
+    // Check the heater voltage less than 4.5 Volts (NOT LATCHED)
+    ETMDigitalUpdateInput(&global_data_A36772.fpga_heater_voltage_less_than_4_5_volts, fpga_bits.heater_voltage_less_than_4_5_volts);
+    if (global_data_A36772.fpga_heater_voltage_less_than_4_5_volts.filtered_reading) {
+      _FPGA_HEATER_VOLTAGE_LESS_THAN_4_5_VOLTS = 1;
+    } else {
+      _FPGA_HEATER_VOLTAGE_LESS_THAN_4_5_VOLTS = 0;
+    }
 
     // Check grid module hardware fault (NOT LATCHED)
     ETMDigitalUpdateInput(&global_data_A36772.fpga_grid_module_hardware_fault, fpga_bits.grid_module_hardware_fault);
@@ -2316,6 +2324,13 @@ void ETMCanSlaveExecuteCMDBoardSpecific(ETMCanMessage* message_ptr) {
       if (global_data_A36772.control_config == 3){
       _CONTROL_NOT_CONFIGURED = 0;
       }
+      break;
+      
+    case ETM_CAN_REGISTER_GUN_DRIVER_RESET_FPGA:
+      if (global_data_A36772.control_state < STATE_POWER_SUPPLY_RAMP_UP) {
+        ResetFPGA();
+      }
+      
       break;
 
     default:
