@@ -19,6 +19,7 @@ _FICD(PGD);
 //void ETMCanSpoofAFCHighSpeedDataLog();
 unsigned int next_pulse_count = 0;
 unsigned int spoof_counter = 0;
+unsigned int global_debug = 0;
 
 
 void DoStateMachine(void); // This handles the state machine for the interface board
@@ -343,6 +344,8 @@ void DoStateMachine(void) {
 
   case STATE_FAULT_HEATER_OFF:
     _CONTROL_NOT_READY = 1;
+    _CONTROL_NOT_CONFIGURED = 1;
+    global_data_A36772.control_config = 0;
     DisableBeam();
     DisableHighVoltage();
     DisableHeater();
@@ -357,6 +360,8 @@ void DoStateMachine(void) {
 
   case STATE_FAULT_WARMUP_HEATER_OFF:
     _CONTROL_NOT_READY = 1;
+    _CONTROL_NOT_CONFIGURED = 1;
+    global_data_A36772.control_config = 0;
     DisableBeam();
     DisableHighVoltage();
     DisableHeater();
@@ -1126,10 +1131,10 @@ void DoA36772(void) {
     //ETMCanSlaveSetDebugRegister(0xF, global_data_A36772.ref_ek.reading_scaled_and_calibrated);
 
     ETMCanSlaveSetDebugRegister(0xA, global_data_A36772.input_bias_v_mon.reading_scaled_and_calibrated);//global_data_A36772.run_time_counter);
-    ETMCanSlaveSetDebugRegister(0xB, global_data_A36772.warmup_complete);//global_data_A36772.fault_restart_remaining);
-    ETMCanSlaveSetDebugRegister(0xC, _FAULT_ADC_BIAS_V_MON_UNDER_ABSOLUTE);//global_data_A36772.dac_digital_watchdog_oscillator);
-    ETMCanSlaveSetDebugRegister(0xD, global_data_A36772.initial_ramp_timer);
-    ETMCanSlaveSetDebugRegister(0xE, _STATUS_HEATER_AT_OPERATING_CURRENT);
+    ETMCanSlaveSetDebugRegister(0xB, global_data_A36772.watchdog_set_mode);//global_data_A36772.warmup_complete);//global_data_A36772.fault_restart_remaining);
+    ETMCanSlaveSetDebugRegister(0xC, global_data_A36772.input_dac_monitor.filtered_adc_reading);//_FAULT_ADC_BIAS_V_MON_UNDER_ABSOLUTE);
+    ETMCanSlaveSetDebugRegister(0xD, global_data_A36772.watchdog_counter);
+    ETMCanSlaveSetDebugRegister(0xE, global_debug);
     ETMCanSlaveSetDebugRegister(0xF, global_data_A36772.control_state);
     
 
@@ -1314,7 +1319,10 @@ void DoA36772(void) {
 
     // Check SPI Communication    
     WatchdogCheck();
-  
+    if (global_data_A36772.watchdog_fault_count) {
+      global_debug++;
+    }
+      
     // Update Faults
     UpdateFaults();
     
@@ -1472,11 +1480,11 @@ void UpdateFaults(void) {
       _FAULT_ADC_BIAS_V_MON_UNDER_ABSOLUTE = 0;
     }
     
-    if (global_data_A36772.watchdog_fault) {                 //latched Watchdog fault
-      _FAULT_SPI_COMMUNICATION = 1;
-    } else if (global_data_A36772.reset_active) {
-      _FAULT_SPI_COMMUNICATION = 0;
-    }  
+//    if (global_data_A36772.watchdog_fault) {                 //latched Watchdog fault
+//      _FAULT_SPI_COMMUNICATION = 1;
+//    } else if (global_data_A36772.reset_active) {
+//      _FAULT_SPI_COMMUNICATION = 0;
+//    }  
 
   } 
 

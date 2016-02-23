@@ -243,7 +243,7 @@
 #define WATCHDOG_MODE_1         1
 #define WATCHDOG_VALUE_0        0x3201   //0x1000
 #define WATCHDOG_VALUE_1        0xCE3E   //0xEFF0
-#define WATCHDOG_PERIOD         30                           //300ms
+#define WATCHDOG_PERIOD         60                           //600ms
 #define WATCHDOG_TEST_TIME_1    ((WATCHDOG_PERIOD/3) - 2)    //80ms
 #define WATCHDOG_TEST_TIME_2    ((2*WATCHDOG_PERIOD/3) - 2)  //180ms
 #define WATCHDOG_TEST_TIME_3    (WATCHDOG_PERIOD - 2)        //280ms
