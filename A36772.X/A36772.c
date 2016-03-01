@@ -1077,7 +1077,7 @@ void DoA36772(void) {
 
     global_data_A36772.initial_ramp_timer++;
 
-    global_data_A36772.watchdog_counter++;
+//    global_data_A36772.watchdog_counter++;
     global_data_A36772.run_time_counter++;
 
     if (global_data_A36772.run_time_counter & 0x0010) {
@@ -1097,7 +1097,8 @@ void DoA36772(void) {
     
     
     if (global_data_A36772.watchdog_set_mode == WATCHDOG_MODE_0) {
-      if (MIN_WD_VALUE_0 < global_data_A36772.input_dac_monitor.filtered_adc_reading < MAX_WD_VALUE_0) {
+      if ((global_data_A36772.input_dac_monitor.filtered_adc_reading > MIN_WD_VALUE_0) &&
+            (global_data_A36772.input_dac_monitor.filtered_adc_reading < MAX_WD_VALUE_0)) {
         global_data_A36772.watchdog_counter = 0;
         global_data_A36772.watchdog_set_mode = WATCHDOG_MODE_1;
         global_data_A36772.dac_digital_watchdog_oscillator = WATCHDOG_VALUE_1;
@@ -1107,7 +1108,8 @@ void DoA36772(void) {
         global_data_A36772.dac_digital_watchdog_oscillator = WATCHDOG_VALUE_0;
       }   
     } else if (global_data_A36772.watchdog_set_mode == WATCHDOG_MODE_1) {
-      if (MIN_WD_VALUE_1 < global_data_A36772.input_dac_monitor.filtered_adc_reading < MAX_WD_VALUE_1) {
+      if ((global_data_A36772.input_dac_monitor.filtered_adc_reading > MIN_WD_VALUE_1) &&
+            (global_data_A36772.input_dac_monitor.filtered_adc_reading < MAX_WD_VALUE_1)) {
         global_data_A36772.watchdog_counter = 0;
         global_data_A36772.watchdog_set_mode = WATCHDOG_MODE_0;
         global_data_A36772.dac_digital_watchdog_oscillator = WATCHDOG_VALUE_0;
@@ -1117,7 +1119,7 @@ void DoA36772(void) {
         global_data_A36772.dac_digital_watchdog_oscillator = WATCHDOG_VALUE_1;
       }     
     } else {
-      global_data_A36772.watchdog_set_mode == WATCHDOG_MODE_0;
+      global_data_A36772.watchdog_set_mode = WATCHDOG_MODE_0;
     }
 
 //    if (global_data_A36772.watchdog_counter >= WATCHDOG_PERIOD) {
@@ -1991,6 +1993,9 @@ void DACWriteChannel(unsigned int command_word, unsigned int data_word) {
       global_data_A36772.dac_write_failure_count++;
       global_data_A36772.dac_write_failure = 1;
       _STATUS_DAC_WRITE_FAILURE = 1;
+    } else if (global_data_A36772.reset_active) {
+      _STATUS_DAC_WRITE_FAILURE = 0;
+      global_data_A36772.dac_write_failure = 0;
     }
   }
 }
@@ -2122,11 +2127,11 @@ void FPGAReadData(void) {
       _FPGA_CURRENT_MONITOR_PULSE_WIDTH_FAULT = 0;
     }
     
-    // Check the heater voltage less than 4.5 Volts (NOT LATCHED)
+    // Check the heater voltage less than 4.5 Volts (LATCHED)
     ETMDigitalUpdateInput(&global_data_A36772.fpga_heater_voltage_less_than_4_5_volts, fpga_bits.heater_voltage_less_than_4_5_volts);
     if (global_data_A36772.fpga_heater_voltage_less_than_4_5_volts.filtered_reading) {
       _FPGA_HEATER_VOLTAGE_LESS_THAN_4_5_VOLTS = 1;
-    } else {
+    } else if (global_data_A36772.reset_active) {
       _FPGA_HEATER_VOLTAGE_LESS_THAN_4_5_VOLTS = 0;
     }
 
@@ -2366,6 +2371,7 @@ void ETMCanSlaveExecuteCMDBoardSpecific(ETMCanMessage* message_ptr) {
     case ETM_CAN_REGISTER_GUN_DRIVER_RESET_FPGA:
       if (global_data_A36772.control_state < STATE_POWER_SUPPLY_RAMP_UP) {
         ResetFPGA();
+        global_data_A36772.control_state = STATE_WAIT_FOR_CONFIG;
       }
       
       break;
