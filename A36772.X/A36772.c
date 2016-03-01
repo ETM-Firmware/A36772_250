@@ -132,8 +132,7 @@ void DoStateMachine(void) {
     global_data_A36772.control_config = 0;
     global_data_A36772.heater_start_up_attempts = 0;
     global_data_A36772.run_time_counter = 0;
-    global_data_A36772.watchdog_counter = 0;
-    global_data_A36772.watchdog_fault = 0;
+
 #ifndef __CAN_REFERENCE
     _CONTROL_NOT_CONFIGURED = 0;
 #endif
@@ -145,6 +144,7 @@ void DoStateMachine(void) {
     DisableBeam();
     DisableHighVoltage();
     DisableHeater();
+    global_data_A36772.watchdog_counter = 0;
     while (global_data_A36772.control_state == STATE_WAIT_FOR_CONFIG) {
       DoA36772();
       DoStartupLEDs();
@@ -270,13 +270,13 @@ void DoStateMachine(void) {
       }
 
       if (!global_data_A36772.request_hv_enable) {
-	global_data_A36772.control_state = STATE_HEATER_WARM_UP_DONE;
+        global_data_A36772.control_state = STATE_HEATER_WARM_UP_DONE;
       }
       if (CheckPreHVFault()) {
-	global_data_A36772.control_state = STATE_FAULT_HEATER_ON;
+        global_data_A36772.control_state = STATE_FAULT_HEATER_ON;
       }
       if (CheckHeaterFault()) {
-	global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
+        global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
       }
     }
     break;
@@ -291,13 +291,13 @@ void DoStateMachine(void) {
     while (global_data_A36772.control_state == STATE_TOP_ON) {
       DoA36772();
       if (!global_data_A36772.request_hv_enable) {
-	global_data_A36772.control_state = STATE_HEATER_WARM_UP_DONE;
+        global_data_A36772.control_state = STATE_HEATER_WARM_UP_DONE;
       }
       if (CheckPreTopFault()) {
-	global_data_A36772.control_state = STATE_FAULT_HEATER_ON;
+        global_data_A36772.control_state = STATE_FAULT_HEATER_ON;
       }
       if (CheckHeaterFault()) {
-	global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
+        global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
       }
       if (_T3IF) {        
         if ((_FAULT_ADC_TOP_V_MON_UNDER_RELATIVE != 0) || (_FAULT_ADC_TOP_V_MON_OVER_RELATIVE != 0)) {
@@ -317,13 +317,13 @@ void DoStateMachine(void) {
     while (global_data_A36772.control_state == STATE_BEAM_ENABLE) {
       DoA36772();
       if (!global_data_A36772.request_hv_enable) {
-	global_data_A36772.control_state = STATE_HEATER_WARM_UP_DONE;
+        global_data_A36772.control_state = STATE_HEATER_WARM_UP_DONE;
       }
       if (CheckFault()) {
-	global_data_A36772.control_state = STATE_FAULT_HEATER_ON;
+        global_data_A36772.control_state = STATE_FAULT_HEATER_ON;
       }
       if (CheckHeaterFault()) {
-	global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
+        global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
       }
     }
     break;
@@ -333,6 +333,8 @@ void DoStateMachine(void) {
     _CONTROL_NOT_READY = 1;
     DisableBeam();
     DisableHighVoltage();
+    ETMAnalogClearFaultCounters(&global_data_A36772.input_hv_v_mon);
+    ETMAnalogClearFaultCounters(&global_data_A36772.input_top_v_mon);
     while (global_data_A36772.control_state == STATE_FAULT_HEATER_ON) {
       DoA36772();
       if (global_data_A36772.reset_active) {
@@ -349,6 +351,8 @@ void DoStateMachine(void) {
     DisableBeam();
     DisableHighVoltage();
     DisableHeater();
+    ETMAnalogClearFaultCounters(&global_data_A36772.input_htr_v_mon);
+    ETMAnalogClearFaultCounters(&global_data_A36772.input_htr_i_mon);
     while (global_data_A36772.control_state == STATE_FAULT_HEATER_OFF) {
       DoA36772();
       if (global_data_A36772.reset_active) {
@@ -365,6 +369,8 @@ void DoStateMachine(void) {
     DisableBeam();
     DisableHighVoltage();
     DisableHeater();
+    ETMAnalogClearFaultCounters(&global_data_A36772.input_htr_v_mon);
+    ETMAnalogClearFaultCounters(&global_data_A36772.input_htr_i_mon);
     global_data_A36772.fault_restart_remaining = HEATER_AUTO_RESTART_TIME;
     while (global_data_A36772.control_state == STATE_FAULT_WARMUP_HEATER_OFF) {
       DoA36772();
@@ -809,7 +815,7 @@ void ResetAllFaultInfo(void) {
   _FPGA_FIRMWARE_MINOR_REV_MISMATCH              = 0;
   _FPGA_ARC_COUNTER_GREATER_ZERO                 = 0;
   _FPGA_ARC_HIGH_VOLTAGE_INHIBIT_ACTIVE          = 0;
-//  _FPGA_HEATER_VOLTAGE_LESS_THAN_4_5_VOLTS       = 0;
+  _FPGA_HEATER_VOLTAGE_LESS_THAN_4_5_VOLTS       = 0;
   _FPGA_MODULE_TEMP_GREATER_THAN_65_C            = 0;
   _FPGA_MODULE_TEMP_GREATER_THAN_75_C            = 0;
 //  _FPGA_PULSE_WIDTH_LIMITING                     = 0;
@@ -1088,20 +1094,49 @@ void DoA36772(void) {
 
     // Start the next acquisition from the external ADC
     ADCStartAcquisition();
-
-    if (global_data_A36772.watchdog_counter >= WATCHDOG_PERIOD) {
-      global_data_A36772.watchdog_counter = 0;
-      global_data_A36772.watchdog_fault = 0;
-      global_data_A36772.watchdog_fault_count = 0;
-      if (global_data_A36772.watchdog_set_mode == WATCHDOG_MODE_0){
+    
+    
+    if (global_data_A36772.watchdog_set_mode == WATCHDOG_MODE_0) {
+      if (MIN_WD_VALUE_0 < global_data_A36772.input_dac_monitor.filtered_adc_reading < MAX_WD_VALUE_0) {
+        global_data_A36772.watchdog_counter = 0;
         global_data_A36772.watchdog_set_mode = WATCHDOG_MODE_1;
         global_data_A36772.dac_digital_watchdog_oscillator = WATCHDOG_VALUE_1;
+        DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_H, global_data_A36772.dac_digital_watchdog_oscillator);   
       } else {
+        global_data_A36772.watchdog_counter++;
+        global_data_A36772.dac_digital_watchdog_oscillator = WATCHDOG_VALUE_0;
+      }   
+    } else if (global_data_A36772.watchdog_set_mode == WATCHDOG_MODE_1) {
+      if (MIN_WD_VALUE_1 < global_data_A36772.input_dac_monitor.filtered_adc_reading < MAX_WD_VALUE_1) {
+        global_data_A36772.watchdog_counter = 0;
         global_data_A36772.watchdog_set_mode = WATCHDOG_MODE_0;
         global_data_A36772.dac_digital_watchdog_oscillator = WATCHDOG_VALUE_0;
-      }
+        DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_H, global_data_A36772.dac_digital_watchdog_oscillator);  
+      } else {
+        global_data_A36772.watchdog_counter++;
+        global_data_A36772.dac_digital_watchdog_oscillator = WATCHDOG_VALUE_1;
+      }     
+    } else {
+      global_data_A36772.watchdog_set_mode == WATCHDOG_MODE_0;
     }
-    DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_H, global_data_A36772.dac_digital_watchdog_oscillator);    
+
+//    if (global_data_A36772.watchdog_counter >= WATCHDOG_PERIOD) {
+//      global_data_A36772.watchdog_counter = 0;
+//      global_data_A36772.watchdog_fault = 0;
+//      global_data_A36772.watchdog_fault_count = 0;
+//      if (global_data_A36772.watchdog_set_mode == WATCHDOG_MODE_0){
+//        global_data_A36772.watchdog_set_mode = WATCHDOG_MODE_1;
+//      } else {
+//        global_data_A36772.watchdog_set_mode = WATCHDOG_MODE_0;
+//      }
+//    }
+//    
+//    if (global_data_A36772.watchdog_set_mode == WATCHDOG_MODE_0){
+//      global_data_A36772.dac_digital_watchdog_oscillator = WATCHDOG_VALUE_0;
+//    } else {
+//      global_data_A36772.dac_digital_watchdog_oscillator = WATCHDOG_VALUE_1;
+//    }
+//    DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_H, global_data_A36772.dac_digital_watchdog_oscillator);    
     
 /*     if (global_data_A36772.watchdog_counter >= 3) {
       global_data_A36772.watchdog_counter = 0;
@@ -1257,68 +1292,69 @@ void DoA36772(void) {
 	
       case 0:
 //	WriteLTC265X(&U32_LTC2654, LTC265X_WRITE_AND_UPDATE_DAC_A, global_data_A36772.monitor_heater_voltage.dac_setting_scaled_and_calibrated);
-	DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_A, global_data_A36772.analog_output_high_voltage.dac_setting_scaled_and_calibrated);
+        DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_A, global_data_A36772.analog_output_high_voltage.dac_setting_scaled_and_calibrated);
 	
         ETMCanSlaveSetDebugRegister(0, global_data_A36772.analog_output_high_voltage.dac_setting_scaled_and_calibrated);
-	break;
+        break;
 	
 
       case 1:
 //	WriteLTC265X(&U32_LTC2654, LTC265X_WRITE_AND_UPDATE_DAC_B, global_data_A36772.monitor_heater_current.dac_setting_scaled_and_calibrated);
-	DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_B, global_data_A36772.analog_output_top_voltage.dac_setting_scaled_and_calibrated);
+        DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_B, global_data_A36772.analog_output_top_voltage.dac_setting_scaled_and_calibrated);
 	
         ETMCanSlaveSetDebugRegister(1, global_data_A36772.analog_output_top_voltage.dac_setting_scaled_and_calibrated);
-	break;
+        break;
 
     
       case 2:
 //	WriteLTC265X(&U32_LTC2654, LTC265X_WRITE_AND_UPDATE_DAC_C, global_data_A36772.monitor_cathode_voltage.dac_setting_scaled_and_calibrated);
-	DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_C, global_data_A36772.analog_output_heater_voltage.dac_setting_scaled_and_calibrated);
-	
+        DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_C, global_data_A36772.analog_output_heater_voltage.dac_setting_scaled_and_calibrated);
+
         ETMCanSlaveSetDebugRegister(2, global_data_A36772.analog_output_heater_voltage.dac_setting_scaled_and_calibrated);
-	break;
+        break;
 
       
       case 3:
 //	WriteLTC265X(&U32_LTC2654, LTC265X_WRITE_AND_UPDATE_DAC_D, global_data_A36772.monitor_grid_voltage.dac_setting_scaled_and_calibrated);
-	DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_D, global_data_A36772.dac_digital_hv_enable);
+        DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_D, global_data_A36772.dac_digital_hv_enable);
 	
         ETMCanSlaveSetDebugRegister(3, global_data_A36772.dac_digital_hv_enable);
-	break;
+        break;
 
 
       case 4:
 //	WriteLTC265X(&U32_LTC2654, LTC265X_WRITE_AND_UPDATE_DAC_A, global_data_A36772.monitor_heater_voltage.dac_setting_scaled_and_calibrated);
-	DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_E, global_data_A36772.dac_digital_heater_enable);
-	
+        DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_E, global_data_A36772.dac_digital_heater_enable);
+
         ETMCanSlaveSetDebugRegister(4, global_data_A36772.dac_digital_heater_enable);
-	break;
+        break;
 
       
       case 5:
 //	WriteLTC265X(&U32_LTC2654, LTC265X_WRITE_AND_UPDATE_DAC_B, global_data_A36772.monitor_heater_current.dac_setting_scaled_and_calibrated);
-	DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_F, global_data_A36772.dac_digital_top_enable);
-	
-        ETMCanSlaveSetDebugRegister(5, global_data_A36772.dac_digital_top_enable);
-	break;
+        DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_F, global_data_A36772.dac_digital_top_enable);
 
-    
+        ETMCanSlaveSetDebugRegister(5, global_data_A36772.dac_digital_top_enable);
+        break;
+
+
       case 6:
 //	WriteLTC265X(&U32_LTC2654, LTC265X_WRITE_AND_UPDATE_DAC_C, global_data_A36772.monitor_cathode_voltage.dac_setting_scaled_and_calibrated);
-	DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_G, global_data_A36772.dac_digital_trigger_enable);
-	
+        DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_G, global_data_A36772.dac_digital_trigger_enable);
+
         ETMCanSlaveSetDebugRegister(6, global_data_A36772.dac_digital_trigger_enable);
-	break;
+        break;
     
   
       case 7:
 //	WriteLTC265X(&U32_LTC2654, LTC265X_WRITE_AND_UPDATE_DAC_D, global_data_A36772.monitor_grid_voltage.dac_setting_scaled_and_calibrated);
-	break;
+        DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_H, global_data_A36772.dac_digital_watchdog_oscillator);
+        break;
       }
     }
 
     // Check SPI Communication    
-    WatchdogCheck();
+//    WatchdogCheck();
     if (global_data_A36772.watchdog_fault_count) {
       global_debug++;
     }
@@ -1365,7 +1401,9 @@ void UpdateFaults(void) {
 
   if (global_data_A36772.fpga_firmware_major_rev_mismatch.filtered_reading) {
     _FAULT_FPGA_FIRMWARE_MAJOR_REV_MISMATCH = 1;
-  }
+  } else if (global_data_A36772.reset_active) {
+    _FAULT_FPGA_FIRMWARE_MAJOR_REV_MISMATCH = 0;
+  }  
  
   // Evaluate the readings from the Coverter Logic Board ADC
   if (global_data_A36772.adc_read_ok) {
@@ -1407,29 +1445,28 @@ void UpdateFaults(void) {
       global_data_A36772.input_htr_v_mon.absolute_under_counter = 0;
     }
 
+ */ 
     // If the high voltage is not on, clear the high voltage, top, and bias error counters
     if (global_data_A36772.control_state < STATE_HV_ON) {
       ETMAnalogClearFaultCounters(&global_data_A36772.input_hv_v_mon);
       ETMAnalogClearFaultCounters(&global_data_A36772.input_top_v_mon);
-      ETMAnalogClearFaultCounters(&global_data_A36772.input_bias_v_mon);
     }
- */
     
-    if (ETMAnalogCheckOverAbsolute(&global_data_A36772.input_htr_i_mon)) {
-      _FAULT_ADC_HTR_I_MON_OVER_ABSOLUTE = 1;
+    if (ETMAnalogCheckOverAbsolute(&global_data_A36772.input_htr_i_mon)) {  
+      _FAULT_ADC_HTR_I_MON_OVER_ABSOLUTE = 1;                                
     } else if (global_data_A36772.reset_active) {
       _FAULT_ADC_HTR_I_MON_OVER_ABSOLUTE = 0;
     }
 
-    if (ETMAnalogCheckOverAbsolute(&global_data_A36772.input_htr_v_mon)) {
+    if (ETMAnalogCheckOverAbsolute(&global_data_A36772.input_htr_v_mon)) {  
       _FAULT_ADC_HTR_V_MON_OVER_ABSOLUTE = 1;
     } else if (global_data_A36772.reset_active) {
       _FAULT_ADC_HTR_V_MON_OVER_ABSOLUTE = 0;
     }
     
     if (global_data_A36772.control_state >= STATE_HEATER_WARM_UP_DONE) {    
-      if (ETMAnalogCheckUnderAbsolute(&global_data_A36772.input_htr_v_mon)) {
-        _FAULT_ADC_HTR_V_MON_UNDER_ABSOLUTE = 1;
+      if (ETMAnalogCheckUnderAbsolute(&global_data_A36772.input_htr_v_mon)) {  
+        _FAULT_ADC_HTR_V_MON_UNDER_ABSOLUTE = 1;                             
       }
     } else if (global_data_A36772.reset_active) {
       _FAULT_ADC_HTR_V_MON_UNDER_ABSOLUTE = 0;
@@ -1459,7 +1496,7 @@ void UpdateFaults(void) {
       _FAULT_ADC_TOP_V_MON_OVER_RELATIVE = 0;
     }
 
-    // Only check for top supply overvoltage after top is enabled
+    // Only check for top supply undervoltage after top is enabled
     if (global_data_A36772.control_state >= STATE_TOP_ON) {
       if (ETMAnalogCheckUnderRelative(&global_data_A36772.input_top_v_mon)) {
         _FAULT_ADC_TOP_V_MON_UNDER_RELATIVE = 1;
@@ -1494,7 +1531,7 @@ void UpdateFaults(void) {
   }
   
 
-  if (global_data_A36772.watchdog_fault) {                 //latched Watchdog fault
+  if (global_data_A36772.watchdog_counter >= WATCHDOG_MAX_COUNT) {                 //latched Watchdog fault
     _FAULT_SPI_COMMUNICATION = 1;
   } else if (global_data_A36772.reset_active) {
     _FAULT_SPI_COMMUNICATION = 0;
@@ -1503,56 +1540,56 @@ void UpdateFaults(void) {
 }
 
 
-void WatchdogCheck(void) {
-
-  unsigned int test = 0;
-  
-  if (global_data_A36772.watchdog_counter == WATCHDOG_TEST_TIME_1) {
-    test = 1;
-  }
-  if (global_data_A36772.watchdog_counter == WATCHDOG_TEST_TIME_2) {
-    test = 2;
-  }
-  if (global_data_A36772.watchdog_counter == WATCHDOG_TEST_TIME_3) {
-    test = 3;
-  } 
-  
-  if (global_data_A36772.watchdog_set_mode == WATCHDOG_MODE_0) {
-    if (test == 1 || test == 2 || test == 3) {
-      if (global_data_A36772.input_dac_monitor.filtered_adc_reading > MAX_WD_VALUE_0) {
-        global_data_A36772.watchdog_fault_count++;
-      } else {
-        if (global_data_A36772.watchdog_fault_count) {
-          global_data_A36772.watchdog_fault_count--;
-        }
-      }
-      if (test == 3) {
-        if (global_data_A36772.watchdog_fault_count) {
-          global_data_A36772.watchdog_fault = 1;
-        } else {
-          global_data_A36772.watchdog_fault = 0;
-        }
-      }
-    }
-  } else {
-    if (test == 1 || test == 2 || test == 3) {
-      if (global_data_A36772.input_dac_monitor.filtered_adc_reading < MIN_WD_VALUE_1) {
-        global_data_A36772.watchdog_fault_count++;
-      } else {
-        if (global_data_A36772.watchdog_fault_count) {
-          global_data_A36772.watchdog_fault_count--;
-        }
-      }
-      if (test == 3) {
-        if (global_data_A36772.watchdog_fault_count) {
-          global_data_A36772.watchdog_fault = 1;
-        } else {
-          global_data_A36772.watchdog_fault = 0;
-        }
-      }
-    }
-  }   
-}
+//void WatchdogCheck(void) {
+//
+//  unsigned int test = 0;
+//  
+//  if (global_data_A36772.watchdog_counter == WATCHDOG_TEST_TIME_1) {
+//    test = 1;
+//  }
+//  if (global_data_A36772.watchdog_counter == WATCHDOG_TEST_TIME_2) {
+//    test = 2;
+//  }
+//  if (global_data_A36772.watchdog_counter == WATCHDOG_TEST_TIME_3) {
+//    test = 3;
+//  } 
+//  
+//  if (global_data_A36772.watchdog_set_mode == WATCHDOG_MODE_0) {
+//    if (test == 1 || test == 2 || test == 3) {
+//      if (global_data_A36772.input_dac_monitor.filtered_adc_reading > MAX_WD_VALUE_0) {
+//        global_data_A36772.watchdog_fault_count++;
+//      } else {
+//        if (global_data_A36772.watchdog_fault_count) {
+//          global_data_A36772.watchdog_fault_count--;
+//        }
+//      }
+//      if (test == 3) {
+//        if (global_data_A36772.watchdog_fault_count) {
+//          global_data_A36772.watchdog_fault = 1;
+//        } else {
+//          global_data_A36772.watchdog_fault = 0;
+//        }
+//      }
+//    }
+//  } else {
+//    if (test == 1 || test == 2 || test == 3) {
+//      if (global_data_A36772.input_dac_monitor.filtered_adc_reading < MIN_WD_VALUE_1) {
+//        global_data_A36772.watchdog_fault_count++;
+//      } else {
+//        if (global_data_A36772.watchdog_fault_count) {
+//          global_data_A36772.watchdog_fault_count--;
+//        }
+//      }
+//      if (test == 3) {
+//        if (global_data_A36772.watchdog_fault_count) {
+//          global_data_A36772.watchdog_fault = 1;
+//        } else {
+//          global_data_A36772.watchdog_fault = 0;
+//        }
+//      }
+//    }
+//  }   
+//}
 
 
 void UpdateLEDandStatusOutuputs(void) {
@@ -1949,7 +1986,7 @@ void DACWriteChannel(unsigned int command_word, unsigned int data_word) {
       global_data_A36772.dac_write_error_count++;
     }
     
-    if ((transmission_complete == 0) & (loop_counter >= MAX_DAC_TX_ATTEMPTS)) {
+    if ((transmission_complete == 0) && (loop_counter >= MAX_DAC_TX_ATTEMPTS)) {
       transmission_complete = 1;
       global_data_A36772.dac_write_failure_count++;
       global_data_A36772.dac_write_failure = 1;
