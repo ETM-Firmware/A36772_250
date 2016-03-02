@@ -169,6 +169,7 @@ void DoStateMachine(void) {
     global_data_A36772.heater_operational = 0;
     global_data_A36772.heater_start_up_attempts++;
     global_data_A36772.initial_ramp_timer = 0;
+    global_data_A36772.watchdog_counter = 0;
     DisableBeam();
     DisableHighVoltage();
     EnableHeater();
