@@ -132,6 +132,7 @@ void DoStateMachine(void) {
     global_data_A36772.control_config = 0;
     global_data_A36772.heater_start_up_attempts = 0;
     global_data_A36772.run_time_counter = 0;
+    global_data_A36772.reset_active = 0;
 
 #ifndef __CAN_REFERENCE
     _CONTROL_NOT_CONFIGURED = 0;
@@ -338,6 +339,9 @@ void DoStateMachine(void) {
     ETMAnalogClearFaultCounters(&global_data_A36772.input_top_v_mon);
     while (global_data_A36772.control_state == STATE_FAULT_HEATER_ON) {
       DoA36772();
+      if (CheckHeaterFault()) {
+        global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
+      }
       if (global_data_A36772.reset_active) {
 	    global_data_A36772.control_state = STATE_HEATER_WARM_UP_DONE;
       }
@@ -375,7 +379,7 @@ void DoStateMachine(void) {
     global_data_A36772.fault_restart_remaining = HEATER_AUTO_RESTART_TIME;
     while (global_data_A36772.control_state == STATE_FAULT_WARMUP_HEATER_OFF) {
       DoA36772();
-      if (global_data_A36772.fault_restart_remaining == 0) {
+      if ((global_data_A36772.fault_restart_remaining == 0) || (global_data_A36772.reset_active != 0)) {
         global_data_A36772.control_state = STATE_WAIT_FOR_CONFIG;
       }
       if (global_data_A36772.heater_start_up_attempts > MAX_HEATER_START_UP_ATTEMPTS) {
@@ -1012,6 +1016,13 @@ void DoA36772(void) {
 #endif
   
 #ifdef __CAN_CONTROLS
+  
+  if (ETMCanSlaveGetPulseLevel()) {
+    global_data_A36772.high_energy_pulse = 1;
+  } else {
+    global_data_A36772.high_energy_pulse = 0;
+  }
+  
   if (!ETMCanSlaveGetSyncMsgSystemHVDisable()) {
     global_data_A36772.request_hv_enable = 1;
     _STATUS_CUSTOMER_HV_ON = 1;
@@ -1174,7 +1185,7 @@ void DoA36772(void) {
     ETMCanSlaveSetDebugRegister(0xD, _FPGA_HEATER_VOLTAGE_LESS_THAN_4_5_VOLTS);
     ETMCanSlaveSetDebugRegister(0xE, global_debug);
     ETMCanSlaveSetDebugRegister(0xF, global_data_A36772.control_state);
-    
+
 
     slave_board_data.log_data[0] = global_data_A36772.input_gun_i_peak.reading_scaled_and_calibrated;
     slave_board_data.log_data[1] = global_data_A36772.input_hv_v_mon.reading_scaled_and_calibrated;
@@ -1216,9 +1227,13 @@ void DoA36772(void) {
 #ifdef __CAN_REFERENCE
 
     ETMAnalogSetOutput(&global_data_A36772.analog_output_high_voltage, global_data_A36772.can_high_voltage_set_point);
-    ETMAnalogSetOutput(&global_data_A36772.analog_output_top_voltage, global_data_A36772.can_pulse_top_set_point);
     global_data_A36772.heater_current_target = global_data_A36772.can_heater_current_set_point;
-  
+    if (global_data_A36772.high_energy_pulse) {
+      ETMAnalogSetOutput(&global_data_A36772.analog_output_top_voltage, global_data_A36772.can_pulse_top_high_set_point);
+    } else {
+      ETMAnalogSetOutput(&global_data_A36772.analog_output_top_voltage, global_data_A36772.can_pulse_top_low_set_point);
+    }   
+        
 #endif
 
     if (global_data_A36772.heater_current_target > MAX_PROGRAM_HTR_CURRENT) {
@@ -1291,6 +1306,8 @@ void DoA36772(void) {
     // Commented out local DAC communication because monitor signals are not used on the A36772-250Z board
 
     if (global_data_A36772.control_state != STATE_WAIT_FOR_CONFIG) {
+      DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_B, global_data_A36772.analog_output_top_voltage.dac_setting_scaled_and_calibrated);  
+        
       switch ((global_data_A36772.run_time_counter & 0b111)) {
 	
       case 0:
@@ -1302,8 +1319,8 @@ void DoA36772(void) {
 	
 
       case 1:
-//	WriteLTC265X(&U32_LTC2654, LTC265X_WRITE_AND_UPDATE_DAC_B, global_data_A36772.monitor_heater_current.dac_setting_scaled_and_calibrated);
-        DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_B, global_data_A36772.analog_output_top_voltage.dac_setting_scaled_and_calibrated);
+//      WriteLTC265X(&U32_LTC2654, LTC265X_WRITE_AND_UPDATE_DAC_B, global_data_A36772.monitor_heater_current.dac_setting_scaled_and_calibrated);
+//      DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_B, global_data_A36772.analog_output_top_voltage.dac_setting_scaled_and_calibrated);
 	
         ETMCanSlaveSetDebugRegister(1, global_data_A36772.analog_output_top_voltage.dac_setting_scaled_and_calibrated);
         break;
@@ -1393,11 +1410,12 @@ void UpdateFaults(void) {
   */
   // END FAULT TESTING
   
-  if ((global_data_A36772.control_state == STATE_FAULT_HEATER_FAILURE) ||
-      (global_data_A36772.control_state == STATE_FAULT_WARMUP_HEATER_OFF) ||
-      (global_data_A36772.control_state == STATE_FAULT_HEATER_OFF) ||
-      (global_data_A36772.control_state == STATE_FAULT_HEATER_ON) ||
-      (global_data_A36772.control_state == STATE_WAIT_FOR_CONFIG)) {
+  if (((global_data_A36772.control_state == STATE_FAULT_HEATER_FAILURE) ||
+       (global_data_A36772.control_state == STATE_FAULT_WARMUP_HEATER_OFF) ||
+       (global_data_A36772.control_state == STATE_FAULT_HEATER_OFF) ||
+       (global_data_A36772.control_state == STATE_FAULT_HEATER_ON) ||
+       (global_data_A36772.control_state == STATE_WAIT_FOR_CONFIG)) &&
+      (global_data_A36772.reset_active == 0)) {
     // Do not evalute any more fault conditions
     return;
   }
@@ -1416,7 +1434,7 @@ void UpdateFaults(void) {
     
     if (global_data_A36772.adc_digital_warmup_flt.filtered_reading == 0) {
       _STATUS_ADC_DIGITAL_HEATER_NOT_READY = 1;
-    } else {
+    } else if (global_data_A36772.reset_active) {
       _STATUS_ADC_DIGITAL_HEATER_NOT_READY = 0;
     }
     
@@ -1426,14 +1444,18 @@ void UpdateFaults(void) {
       _FAULT_ADC_DIGITAL_ARC = 0;
     }  
     
-    if (global_data_A36772.adc_digital_over_temp_flt.filtered_reading == 0) {
-      _FAULT_ADC_DIGITAL_OVER_TEMP = 1;
+    if (global_data_A36772.control_state >= STATE_HEATER_RAMP_UP) {
+      if (global_data_A36772.adc_digital_over_temp_flt.filtered_reading == 0) {
+        _FAULT_ADC_DIGITAL_OVER_TEMP = 1;
+      }
     } else if (global_data_A36772.reset_active) {
       _FAULT_ADC_DIGITAL_OVER_TEMP = 0;
     }  
 
-    if (global_data_A36772.adc_digital_grid_flt.filtered_reading == 0) {
-      _FAULT_ADC_DIGITAL_GRID = 1;
+    if (global_data_A36772.control_state >= STATE_HEATER_RAMP_UP) {
+      if (global_data_A36772.adc_digital_grid_flt.filtered_reading == 0) {
+        _FAULT_ADC_DIGITAL_GRID = 1;
+      }
     } else if (global_data_A36772.reset_active) {
       _FAULT_ADC_DIGITAL_GRID = 0;
     }     
@@ -1455,14 +1477,18 @@ void UpdateFaults(void) {
       ETMAnalogClearFaultCounters(&global_data_A36772.input_top_v_mon);
     }
     
-    if (ETMAnalogCheckOverAbsolute(&global_data_A36772.input_htr_i_mon)) {  
-      _FAULT_ADC_HTR_I_MON_OVER_ABSOLUTE = 1;                                
+    if (global_data_A36772.control_state >= STATE_HEATER_RAMP_UP) {
+      if (ETMAnalogCheckOverAbsolute(&global_data_A36772.input_htr_i_mon)) {  
+        _FAULT_ADC_HTR_I_MON_OVER_ABSOLUTE = 1;
+      }
     } else if (global_data_A36772.reset_active) {
       _FAULT_ADC_HTR_I_MON_OVER_ABSOLUTE = 0;
     }
-
-    if (ETMAnalogCheckOverAbsolute(&global_data_A36772.input_htr_v_mon)) {  
-      _FAULT_ADC_HTR_V_MON_OVER_ABSOLUTE = 1;
+    
+    if (global_data_A36772.control_state >= STATE_HEATER_RAMP_UP) {
+      if (ETMAnalogCheckOverAbsolute(&global_data_A36772.input_htr_v_mon)) {
+        _FAULT_ADC_HTR_V_MON_OVER_ABSOLUTE = 1;
+      }
     } else if (global_data_A36772.reset_active) {
       _FAULT_ADC_HTR_V_MON_OVER_ABSOLUTE = 0;
     }
@@ -2351,8 +2377,8 @@ void ETMCanSlaveExecuteCMDBoardSpecific(ETMCanMessage* message_ptr) {
   switch (index_word) {
 
     case ETM_CAN_REGISTER_GUN_DRIVER_SET_1_GRID_TOP_SET_POINT:
-      global_data_A36772.can_pulse_top_set_point = message_ptr->word1;
-//      // word0 for low Eg, not used
+      global_data_A36772.can_pulse_top_high_set_point = message_ptr->word1;
+      global_data_A36772.can_pulse_top_low_set_point = message_ptr->word0;
       global_data_A36772.control_config |= 1;
       if (global_data_A36772.control_config == 3){
       _CONTROL_NOT_CONFIGURED = 0;
