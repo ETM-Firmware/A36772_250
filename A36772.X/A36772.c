@@ -394,7 +394,7 @@ void DoStateMachine(void) {
     global_data_A36772.fault_restart_remaining = HEATER_AUTO_RESTART_TIME;
     while (global_data_A36772.control_state == STATE_FAULT_WARMUP_HEATER_OFF) {
       DoA36772();
-      if ((global_data_A36772.fault_restart_remaining == 0) || (global_data_A36772.reset_active != 0)) {
+      if (global_data_A36772.fault_restart_remaining == 0) {
         global_data_A36772.control_state = STATE_WAIT_FOR_CONFIG;
       }
       if (global_data_A36772.heater_start_up_attempts > MAX_HEATER_START_UP_ATTEMPTS) {
