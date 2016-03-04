@@ -400,16 +400,16 @@ extern TYPE_GLOBAL_DATA_A36772 global_data_A36772;
 
 #define _FAULT_FPGA_FIRMWARE_MAJOR_REV_MISMATCH        _FAULT_0 // CHECKED_DP// Heater Fault
 #define _FAULT_ADC_HV_V_MON_OVER_RELATIVE              _FAULT_1 // CHECKED_DP
-#define _FAULT_ADC_HV_V_MON_UNDER_RELATIVE             _FAULT_1 // CHECKED_DP
-#define _FAULT_ADC_HTR_V_MON_OVER_ABSOLUTE             _FAULT_2 // CHECKED_DP// Heater Fault
-#define _FAULT_ADC_HTR_V_MON_UNDER_ABSOLUTE            _FAULT_2 // CHECKED_DP// Heater Fault
+#define _FAULT_ADC_HV_V_MON_UNDER_RELATIVE             _FAULT_2 // CHECKED_DP
+#define _FAULT_ADC_HTR_V_MON_OVER_ABSOLUTE             _FAULT_3 // CHECKED_DP// Heater Fault
+#define _FAULT_ADC_HTR_V_MON_UNDER_ABSOLUTE            _FAULT_4 // CHECKED_DP// Heater Fault
 //#define _FAULT_HEATER_VOLTAGE_CURRENT_LIMITED          _FAULT_3 // CHECKED_DP// Heater Fault
-#define _FAULT_ADC_HTR_I_MON_OVER_ABSOLUTE             _FAULT_4 // CHECKED_DP// Heater Fault
+#define _FAULT_ADC_HTR_I_MON_OVER_ABSOLUTE             _FAULT_5 // CHECKED_DP// Heater Fault
 //#define _FAULT_ADC_HTR_I_MON_UNDER_ABSOLUTE            _FAULT_4 // CHECKED_DP// Heater Fault
-#define _FAULT_ADC_TOP_V_MON_OVER_RELATIVE             _FAULT_5 // CHECKED_DP
-#define _FAULT_ADC_TOP_V_MON_UNDER_RELATIVE            _FAULT_5 // CHECKED_DP
-#define _FAULT_ADC_BIAS_V_MON_OVER_ABSOLUTE            _FAULT_6 // CHECKED_DP 
-#define _FAULT_ADC_BIAS_V_MON_UNDER_ABSOLUTE           _FAULT_6 // CHECKED_DP
+#define _FAULT_ADC_TOP_V_MON_OVER_RELATIVE             _FAULT_6 // CHECKED_DP
+#define _FAULT_ADC_TOP_V_MON_UNDER_RELATIVE            _FAULT_7 // CHECKED_DP
+#define _FAULT_ADC_BIAS_V_MON_OVER_ABSOLUTE            _FAULT_8 // CHECKED_DP 
+#define _FAULT_ADC_BIAS_V_MON_UNDER_ABSOLUTE           _FAULT_8 // CHECKED_DP
 //#define _FAULT_CAN_COMMUNICATION                       _FAULT_7
 //#define _FAULT_ADC_DIGITAL_WATCHDOG                    _FAULT_8  // CHECKED_DP// This requires a FPGA Reset (Goto Heater Off State)
 #define _FAULT_ADC_DIGITAL_ARC                         _FAULT_9  // CHECKED_DP// This requires HV OFF
@@ -465,7 +465,8 @@ extern TYPE_GLOBAL_DATA_A36772 global_data_A36772;
 #define STATE_POWER_SUPPLY_RAMP_UP           100
 #define STATE_HV_ON                          110
 #define STATE_TOP_ON                         120
-#define STATE_BEAM_ENABLE                    130
+#define STATE_TOP_READY                      130
+#define STATE_BEAM_ENABLE                    140
 
 
 
