@@ -19,7 +19,7 @@ _FICD(PGD);
 //void ETMCanSpoofAFCHighSpeedDataLog();
 unsigned int next_pulse_count = 0;
 unsigned int spoof_counter = 0;
-unsigned int global_debug = 0;
+unsigned int dac_resets_debug = 0;
 
 
 void DoStateMachine(void); // This handles the state machine for the interface board
@@ -129,6 +129,7 @@ void DoStateMachine(void) {
     _CONTROL_NOT_CONFIGURED = 1;
     _CONTROL_NOT_READY = 1;
     global_data_A36772.watchdog_set_mode = WATCHDOG_MODE_0;
+    global_data_A36772.watchdog_state_change = 1;
     global_data_A36772.control_config = 0;
     global_data_A36772.heater_start_up_attempts = 0;
     global_data_A36772.run_time_counter = 0;
@@ -1065,6 +1066,12 @@ void DoA36772(void) {
     } else {
       global_data_A36772.reset_active = 0;
     }
+    
+    if (ETMCanSlaveGetSyncMsgClearDebug()) {
+      global_data_A36772.reset_debug = 1;
+    } else {
+      global_data_A36772.reset_debug = 0;
+    }
 
     if (ETMCanSlaveGetComFaultStatus()) {
       _FAULT_CAN_COMMUNICATION = 1;
@@ -1117,6 +1124,7 @@ void DoA36772(void) {
       if ((global_data_A36772.input_dac_monitor.filtered_adc_reading > MIN_WD_VALUE_0) &&
             (global_data_A36772.input_dac_monitor.filtered_adc_reading < MAX_WD_VALUE_0)) {
         global_data_A36772.watchdog_counter = 0;
+        global_data_A36772.watchdog_state_change = 1;
         global_data_A36772.watchdog_set_mode = WATCHDOG_MODE_1;
         global_data_A36772.dac_digital_watchdog_oscillator = WATCHDOG_VALUE_1;
         DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_H, global_data_A36772.dac_digital_watchdog_oscillator);   
@@ -1128,6 +1136,7 @@ void DoA36772(void) {
       if ((global_data_A36772.input_dac_monitor.filtered_adc_reading > MIN_WD_VALUE_1) &&
             (global_data_A36772.input_dac_monitor.filtered_adc_reading < MAX_WD_VALUE_1)) {
         global_data_A36772.watchdog_counter = 0;
+        global_data_A36772.watchdog_state_change = 1;
         global_data_A36772.watchdog_set_mode = WATCHDOG_MODE_0;
         global_data_A36772.dac_digital_watchdog_oscillator = WATCHDOG_VALUE_0;
         DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_H, global_data_A36772.dac_digital_watchdog_oscillator);  
@@ -1138,7 +1147,15 @@ void DoA36772(void) {
     } else {
       global_data_A36772.watchdog_set_mode = WATCHDOG_MODE_0;
     }
+    
+    if (dac_resets_debug < global_data_A36772.watchdog_counter) {
+      dac_resets_debug++;
+    }
 
+    if (global_data_A36772.reset_debug) {
+      dac_resets_debug = 0;  
+    }
+    
 //    if (global_data_A36772.watchdog_counter >= WATCHDOG_PERIOD) {
 //      global_data_A36772.watchdog_counter = 0;
 //      global_data_A36772.watchdog_fault = 0;
@@ -1188,7 +1205,7 @@ void DoA36772(void) {
     ETMCanSlaveSetDebugRegister(0xB, _FAULT_ADC_TOP_V_MON_UNDER_RELATIVE);//global_data_A36772.warmup_complete);//global_data_A36772.fault_restart_remaining);
     ETMCanSlaveSetDebugRegister(0xC, _FAULT_ADC_TOP_V_MON_OVER_RELATIVE);//_FAULT_ADC_BIAS_V_MON_UNDER_ABSOLUTE);
     ETMCanSlaveSetDebugRegister(0xD, _FPGA_HEATER_VOLTAGE_LESS_THAN_4_5_VOLTS);
-    ETMCanSlaveSetDebugRegister(0xE, global_debug);
+    ETMCanSlaveSetDebugRegister(0xE, dac_resets_debug);
     ETMCanSlaveSetDebugRegister(0xF, global_data_A36772.control_state);
 
 
@@ -1374,16 +1391,17 @@ void DoA36772(void) {
   
       case 7:
 //	WriteLTC265X(&U32_LTC2654, LTC265X_WRITE_AND_UPDATE_DAC_D, global_data_A36772.monitor_grid_voltage.dac_setting_scaled_and_calibrated);
-        DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_H, global_data_A36772.dac_digital_watchdog_oscillator);
+        if (global_data_A36772.watchdog_state_change == 0) {
+          DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_H, global_data_A36772.dac_digital_watchdog_oscillator);
+        } else {
+          global_data_A36772.watchdog_state_change = 0;
+        }
         break;
       }
     }
 
     // Check SPI Communication    
 //    WatchdogCheck();
-    if (global_data_A36772.watchdog_fault_count) {
-      global_debug++;
-    }
       
     // Update Faults
     UpdateFaults();

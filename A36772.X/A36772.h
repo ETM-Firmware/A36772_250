@@ -277,6 +277,7 @@ typedef struct {
   unsigned int request_hv_enable;               // This indicates that hv_enable has been requested (either from CAN module or from discrete inputs depending upon configuration)
   unsigned int request_beam_enable;             // This indicates that beam_enable has been requested (either from CAN module or from discrete inputs depending upon configuration)
   unsigned int reset_active;                    // This indicates that reset has been requested (either from CAN module or from discrete inputs depending upon configuration)
+  unsigned int reset_debug;                     // This resets the debug values
   unsigned int warmup_complete;                 // This indicates that the heater warmup timer has elapsed (from CAN module)
   unsigned int set_current_reached;             // This is used to determine when the operating current has been reached
   unsigned int heater_operational;              // This indicates when heater voltage set point is considered operational
@@ -290,6 +291,7 @@ typedef struct {
 //  unsigned int heater_warm_up_time_remaining;   // This counts down the heater warm up
   unsigned int initial_ramp_timer;              // This times out the initial heater ramp up
   unsigned int watchdog_counter;                // This counts when to update the watchdog DAC output on the converter logic board
+  unsigned int watchdog_state_change;           // This flag is so the DAC isn't rewritten to for at least 80 ms
   unsigned int watchdog_fault_count;            // This counts the watchdog misreads from the ADC on the converter logic board 
   unsigned int watchdog_fault;                  // This is the watchdog fault condition for the SPI com fault
   unsigned int watchdog_set_mode;               // This is the DAC/ADC test setting for the SPI watchdog
