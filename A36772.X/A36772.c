@@ -1424,7 +1424,7 @@ void UpdateFaults(void) {
 //    return;
 //  }
 
-  if (global_data_A36772.control_state >= STATE_HEATER_RAMP_UP) {
+  if (global_data_A36772.control_state < STATE_HEATER_RAMP_UP) {
     // Do not evalute any more fault conditions
     return;
   }
