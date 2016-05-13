@@ -437,6 +437,7 @@ extern TYPE_GLOBAL_DATA_A36772 global_data_A36772;
 #define _FPGA_ARC_HIGH_VOLTAGE_INHIBIT_ACTIVE          _WARNING_7
 #define _FPGA_MODULE_TEMP_GREATER_THAN_65_C            _WARNING_8
 #define _FPGA_MODULE_TEMP_GREATER_THAN_75_C            _WARNING_8
+#define _STATUS_SPI_COM_FAULTED                        _WARNING_9
 //#define _FPGA_PULSE_WIDTH_LIMITING                     _WARNING_9
 //#define _FPGA_PRF_FAULT                                _WARNING_9
 #define _FPGA_CURRENT_MONITOR_PULSE_WIDTH_FAULT        _WARNING_A
