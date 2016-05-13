@@ -128,7 +128,7 @@ void DoStateMachine(void) {
     DisableHeater();
     _CONTROL_NOT_CONFIGURED = 1;
     _CONTROL_NOT_READY = 1;
-    _STATUS_SPI_COM_FAULTED = 0;
+    _FAULT_SPI_COMMUNICATION = 0;
     global_data_A36772.watchdog_set_mode = WATCHDOG_MODE_0;
     global_data_A36772.watchdog_state_change = 1;
     global_data_A36772.control_config = 0;
@@ -230,7 +230,7 @@ void DoStateMachine(void) {
       if (CheckHeaterFault()) {
         global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
       }
-      if (_FAULT_SPI_COMMUNICATION) {
+      if (_STATUS_SPI_COM_FAULTED) {
         global_data_A36772.control_state = STATE_FAULT_WARMUP_HEATER_OFF;
       }      
       if (ETMCanSlaveGetSyncMsgGunDriverDisableHeater()) {
@@ -261,7 +261,7 @@ void DoStateMachine(void) {
       if (CheckHeaterFault()) {
         global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
       }
-      if (_FAULT_SPI_COMMUNICATION) {
+      if (_STATUS_SPI_COM_FAULTED) {
         global_data_A36772.control_state = STATE_FAULT_WARMUP_HEATER_OFF;
       } 
       if (ETMCanSlaveGetSyncMsgGunDriverDisableHeater()) {
@@ -295,7 +295,7 @@ void DoStateMachine(void) {
       if (CheckHeaterFault()) {
         global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
       }
-      if (_FAULT_SPI_COMMUNICATION) {
+      if (_STATUS_SPI_COM_FAULTED) {
         global_data_A36772.control_state = STATE_FAULT_WARMUP_HEATER_OFF;
       } 
       if (ETMCanSlaveGetSyncMsgGunDriverDisableHeater()) {
@@ -325,7 +325,7 @@ void DoStateMachine(void) {
       if (CheckHeaterFault()) {
         global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
       }
-      if (_FAULT_SPI_COMMUNICATION) {
+      if (_STATUS_SPI_COM_FAULTED) {
         global_data_A36772.control_state = STATE_FAULT_WARMUP_HEATER_OFF;
       } 
       if (ETMCanSlaveGetSyncMsgGunDriverDisableHeater()) {
@@ -353,7 +353,7 @@ void DoStateMachine(void) {
       if (CheckHeaterFault()) {
         global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
       }
-      if (_FAULT_SPI_COMMUNICATION) {
+      if (_STATUS_SPI_COM_FAULTED) {
         global_data_A36772.control_state = STATE_FAULT_WARMUP_HEATER_OFF;
       } 
       if (ETMCanSlaveGetSyncMsgGunDriverDisableHeater()) {
@@ -378,7 +378,7 @@ void DoStateMachine(void) {
       if (CheckHeaterFault()) {
         global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
       }
-      if (_FAULT_SPI_COMMUNICATION) {
+      if (_STATUS_SPI_COM_FAULTED) {
         global_data_A36772.control_state = STATE_FAULT_WARMUP_HEATER_OFF;
       } 
       if (ETMCanSlaveGetSyncMsgGunDriverDisableHeater()) {
@@ -402,7 +402,7 @@ void DoStateMachine(void) {
       if (CheckHeaterFault()) {
         global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
       }
-      if (_FAULT_SPI_COMMUNICATION) {
+      if (_STATUS_SPI_COM_FAULTED) {
         global_data_A36772.control_state = STATE_FAULT_WARMUP_HEATER_OFF;
       } 
       if (ETMCanSlaveGetSyncMsgGunDriverDisableHeater()) {
@@ -881,13 +881,14 @@ void ResetAllFaultInfo(void) {
 //  _FAULT_HEATER_RAMP_TIMEOUT = 0;
   _FAULT_HEATER_STARTUP_FAILURE = 0;
   _FAULT_CAN_COMMUNICATION = 0;
-  _FAULT_SPI_COMMUNICATION = 0;
+//  _FAULT_SPI_COMMUNICATION = 0;
   _STATUS_INTERLOCK_INHIBITING_HV = 0;
   _STATUS_HEATER_AT_OPERATING_CURRENT = 0;
   _STATUS_CUSTOMER_HV_ON = 0;
   _STATUS_CUSTOMER_BEAM_ENABLE = 0;
   _STATUS_ADC_DIGITAL_HEATER_NOT_READY = 0;
   _STATUS_DAC_WRITE_FAILURE = 0;
+  _STATUS_SPI_COM_FAULTED = 0;
 
   _FPGA_CONVERTER_LOGIC_PCB_REV_MISMATCH         = 0;
   _FPGA_FIRMWARE_MINOR_REV_MISMATCH              = 0;
@@ -978,7 +979,8 @@ unsigned int CheckRampingHeaterFault(void) {
   fault |= _FAULT_CONVERTER_LOGIC_ADC_READ_FAILURE;
   fault |= _FAULT_ADC_BIAS_V_MON_OVER_ABSOLUTE;
   fault |= _FAULT_ADC_BIAS_V_MON_UNDER_ABSOLUTE;
-  fault |= _FAULT_SPI_COMMUNICATION;
+//  fault |= _FAULT_SPI_COMMUNICATION;
+  fault |= _STATUS_SPI_COM_FAULTED;
   fault |= _FAULT_CAN_COMMUNICATION;
   if (fault) {
     return 1;
@@ -1608,17 +1610,17 @@ void UpdateFaults(void) {
     }
     
     if (global_data_A36772.watchdog_counter >= WATCHDOG_MAX_COUNT) {                 //latched Watchdog fault
-      _FAULT_SPI_COMMUNICATION = 1;
+      _STATUS_SPI_COM_FAULTED = 1;
       global_data_A36772.watchdog_counter = 0;
       ResetFPGA();
     } else if (global_data_A36772.reset_active) {
-      _FAULT_SPI_COMMUNICATION = 0;
+      _STATUS_SPI_COM_FAULTED = 0;
     }
     
-    if (_FAULT_SPI_COMMUNICATION) {
-      _STATUS_SPI_COM_FAULTED = 1;
+    if (_STATUS_SPI_COM_FAULTED) {
+      _FAULT_SPI_COMMUNICATION = 1;
     } else if (global_data_A36772.reset_active) {
-      _STATUS_SPI_COM_FAULTED = 0;
+      _FAULT_SPI_COMMUNICATION = 0;
     }
 
   } 
