@@ -186,6 +186,9 @@ void DoStateMachine(void) {
       if (CheckRampingHeaterFault()) {
         global_data_A36772.control_state = STATE_FAULT_WARMUP_HEATER_OFF;
       }
+      if (ETMCanSlaveGetSyncMsgGunDriverDisableHeater()) {
+        global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
+      }
     }
     break;
  
@@ -205,6 +208,9 @@ void DoStateMachine(void) {
       if (CheckRampingHeaterFault()) {
         global_data_A36772.control_state = STATE_FAULT_WARMUP_HEATER_OFF;
       }
+      if (ETMCanSlaveGetSyncMsgGunDriverDisableHeater()) {
+        global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
+      }
     }
   
   case STATE_HEATER_WARM_UP_DONE:
@@ -221,6 +227,9 @@ void DoStateMachine(void) {
         global_data_A36772.control_state = STATE_POWER_SUPPLY_RAMP_UP;
       }
       if (CheckHeaterFault()) {
+        global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
+      }
+      if (ETMCanSlaveGetSyncMsgGunDriverDisableHeater()) {
         global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
       }
     }
@@ -246,6 +255,9 @@ void DoStateMachine(void) {
         global_data_A36772.control_state = STATE_FAULT_HEATER_ON;
       }
       if (CheckHeaterFault()) {
+        global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
+      }
+      if (ETMCanSlaveGetSyncMsgGunDriverDisableHeater()) {
         global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
       }
     }
@@ -276,6 +288,9 @@ void DoStateMachine(void) {
       if (CheckHeaterFault()) {
         global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
       }
+      if (ETMCanSlaveGetSyncMsgGunDriverDisableHeater()) {
+        global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
+      }
     }
     break;  
 
@@ -300,6 +315,9 @@ void DoStateMachine(void) {
       if (CheckHeaterFault()) {
         global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
       }
+      if (ETMCanSlaveGetSyncMsgGunDriverDisableHeater()) {
+        global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
+      }
     }
     break;
     
@@ -322,6 +340,9 @@ void DoStateMachine(void) {
       if (CheckHeaterFault()) {
         global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
       }
+      if (ETMCanSlaveGetSyncMsgGunDriverDisableHeater()) {
+        global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
+      }
     }
     break;
 
@@ -339,6 +360,9 @@ void DoStateMachine(void) {
         global_data_A36772.control_state = STATE_FAULT_HEATER_ON;
       }
       if (CheckHeaterFault()) {
+        global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
+      }
+      if (ETMCanSlaveGetSyncMsgGunDriverDisableHeater()) {
         global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
       }
     }
@@ -359,6 +383,9 @@ void DoStateMachine(void) {
       if (CheckHeaterFault()) {
         global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
       }
+      if (ETMCanSlaveGetSyncMsgGunDriverDisableHeater()) {
+        global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
+      }
     }
     break;
 
@@ -367,6 +394,7 @@ void DoStateMachine(void) {
     _CONTROL_NOT_READY = 1;
     _CONTROL_NOT_CONFIGURED = 1;
     global_data_A36772.control_config = 0;
+    global_data_A36772.watchdog_counter = 0;
     DisableBeam();
     DisableHighVoltage();
     DisableHeater();
@@ -375,7 +403,9 @@ void DoStateMachine(void) {
     ETMAnalogClearFaultCounters(&global_data_A36772.input_bias_v_mon);
     while (global_data_A36772.control_state == STATE_FAULT_HEATER_OFF) {
       DoA36772();
-      if (global_data_A36772.reset_active) {
+      if ((global_data_A36772.reset_active != 0) && 
+          (ETMCanSlaveGetSyncMsgGunDriverDisableHeater() == 0) &&
+          (_FAULT_REGISTER == 0)) {
         global_data_A36772.control_state = STATE_WAIT_FOR_CONFIG;
       }
     }
@@ -386,12 +416,14 @@ void DoStateMachine(void) {
     _CONTROL_NOT_READY = 1;
     _CONTROL_NOT_CONFIGURED = 1;
     global_data_A36772.control_config = 0;
+    global_data_A36772.watchdog_counter = 0;
     DisableBeam();
     DisableHighVoltage();
     DisableHeater();
-    ETMAnalogClearFaultCounters(&global_data_A36772.input_htr_v_mon);
-    ETMAnalogClearFaultCounters(&global_data_A36772.input_htr_i_mon);
-    ETMAnalogClearFaultCounters(&global_data_A36772.input_bias_v_mon);
+//    ETMAnalogClearFaultCounters(&global_data_A36772.input_htr_v_mon);
+//    ETMAnalogClearFaultCounters(&global_data_A36772.input_htr_i_mon);
+//    ETMAnalogClearFaultCounters(&global_data_A36772.input_bias_v_mon);
+    ResetAllFaultInfo();
     global_data_A36772.fault_restart_remaining = HEATER_AUTO_RESTART_TIME;
     while (global_data_A36772.control_state == STATE_FAULT_WARMUP_HEATER_OFF) {
       DoA36772();
@@ -400,6 +432,9 @@ void DoStateMachine(void) {
       }
       if (global_data_A36772.heater_start_up_attempts > MAX_HEATER_START_UP_ATTEMPTS) {
         global_data_A36772.control_state = STATE_FAULT_HEATER_FAILURE;
+      }
+      if (ETMCanSlaveGetSyncMsgGunDriverDisableHeater()) {
+        global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
       }
     }
     break;
@@ -1205,7 +1240,7 @@ void DoA36772(void) {
     ETMCanSlaveSetDebugRegister(0xA, global_data_A36772.analog_output_heater_voltage.enabled);//global_data_A36772.run_time_counter);
     ETMCanSlaveSetDebugRegister(0xB, _FAULT_ADC_TOP_V_MON_UNDER_RELATIVE);//global_data_A36772.warmup_complete);//global_data_A36772.fault_restart_remaining);
     ETMCanSlaveSetDebugRegister(0xC, _FAULT_ADC_TOP_V_MON_OVER_RELATIVE);//_FAULT_ADC_BIAS_V_MON_UNDER_ABSOLUTE);
-    ETMCanSlaveSetDebugRegister(0xD, _FPGA_HEATER_VOLTAGE_LESS_THAN_4_5_VOLTS);
+    ETMCanSlaveSetDebugRegister(0xD, ETMCanSlaveGetSyncMsgGunDriverDisableHeater());//_FPGA_HEATER_VOLTAGE_LESS_THAN_4_5_VOLTS);
     ETMCanSlaveSetDebugRegister(0xE, dac_resets_debug);
     ETMCanSlaveSetDebugRegister(0xF, global_data_A36772.control_state);
 
@@ -1425,11 +1460,14 @@ void UpdateFaults(void) {
 //    return;
 //  }
 
-  if (global_data_A36772.control_state < STATE_HEATER_RAMP_UP) {
+//  if (global_data_A36772.control_state < STATE_HEATER_RAMP_UP) {
+//    // Do not evalute any more fault conditions
+//    return;
+//  }
+  if (global_data_A36772.control_state == STATE_WAIT_FOR_CONFIG) {
     // Do not evalute any more fault conditions
     return;
   }
-  
     
   if (global_data_A36772.fpga_firmware_major_rev_mismatch.filtered_reading) {
     _FAULT_FPGA_FIRMWARE_MAJOR_REV_MISMATCH = 1;
