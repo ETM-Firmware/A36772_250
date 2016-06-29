@@ -236,18 +236,18 @@
 #define DELAY_FPGA_CABLE_DELAY 10
 
 // ---------------------- Converter Logic Board Interface Control ------------------------- //
-#define WATCHDOG_HIGH                                48000
-#define WATCHDOG_LOW                                 16000
+//#define WATCHDOG_HIGH                                48000
+//#define WATCHDOG_LOW                                 16000
 
 #define WATCHDOG_MODE_0         10
 #define WATCHDOG_MODE_1         20
 #define WATCHDOG_VALUE_0        0x3201   // 12801 - Allowed range from 8706 to 16896   //0x1000
 #define WATCHDOG_VALUE_1        0xCE3E   // 52798 - Allowed range from 48703 to 56893  //0xEFF0
-#define WATCHDOG_PERIOD         60                           //600ms
+//#define WATCHDOG_PERIOD         60                           //600ms
 #define WATCHDOG_MAX_COUNT      80                           //800ms
-#define WATCHDOG_TEST_TIME_1    ((WATCHDOG_PERIOD/3) - 2)    //80ms
-#define WATCHDOG_TEST_TIME_2    ((2*WATCHDOG_PERIOD/3) - 2)  //180ms
-#define WATCHDOG_TEST_TIME_3    (WATCHDOG_PERIOD - 2)        //280ms
+//#define WATCHDOG_TEST_TIME_1    ((WATCHDOG_PERIOD/3) - 2)    //80ms
+//#define WATCHDOG_TEST_TIME_2    ((2*WATCHDOG_PERIOD/3) - 2)  //180ms
+//#define WATCHDOG_TEST_TIME_3    (WATCHDOG_PERIOD - 2)        //280ms
    
 #define MIN_WD_VALUE_0          0x2202
 #define MAX_WD_VALUE_0          0x4200
@@ -292,8 +292,8 @@ typedef struct {
   unsigned int initial_ramp_timer;              // This times out the initial heater ramp up
   unsigned int watchdog_counter;                // This counts when to update the watchdog DAC output on the converter logic board
   unsigned int watchdog_state_change;           // This flag is so the DAC isn't rewritten to for at least 80 ms
-  unsigned int watchdog_fault_count;            // This counts the watchdog misreads from the ADC on the converter logic board 
-  unsigned int watchdog_fault;                  // This is the watchdog fault condition for the SPI com fault
+//  unsigned int watchdog_fault_count;            // This counts the watchdog misreads from the ADC on the converter logic board 
+//  unsigned int watchdog_fault;                  // This is the watchdog fault condition for the SPI com fault
   unsigned int watchdog_set_mode;               // This is the DAC/ADC test setting for the SPI watchdog
   unsigned int heater_ramp_interval;            // This counts the interval between heater ramp voltage changes
   unsigned int heater_current_target;           // This is the targeted heater current set point

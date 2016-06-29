@@ -36,11 +36,11 @@ unsigned int CheckRampingHeaterFault(void); //Faults for before heater warmup ti
 void DoA36772(void);
 /*
   DoA36772 is called every time the processor cycles throuh it's control loop
-  If _T2IF is set (indicateds 10mS has passed) it executes everything that happens on 10mS time scale
+  If _T2IF is set (indicates 10mS has passed) it executes everything that happens on 10mS time scale
 */
 void UpdateFaults(void); // Update the fault bits based on analog/digital parameters
 void UpdateLEDandStatusOutuputs(void);  // Updates the LED and status outputs based on the system state
-void WatchdogCheck(void); // Checks for SPI communication fails
+//void WatchdogCheck(void); // Checks for SPI communication fails
 /*
   Helper Function used to Enable/Disable Supplies on Converter logic board
 */
@@ -69,8 +69,8 @@ void ADCConfigure(void);
 void ADCStartAcquisition(void);  
 /* 
    Start the configured acquisition sequence
-   This will start an automated acquistion that will read each input 16 times and store results
-   (along with the temeperature) into the FIFO buffer
+   This will start an automated acquisition that will read each input 16 times and store results
+   (along with the temperature) into the FIFO buffer
 */
 void UpdateADCResults(void);     
 /* 
@@ -87,10 +87,10 @@ void FPGAReadData(void);
   This reads 32 bits of data from the FPGA
   It checks that Major rev matches and stores the status information
 */
-unsigned char SPICharInvertered(unsigned char transmit_byte);
+unsigned char SPICharInverted(unsigned char transmit_byte);
 /*
-  The fiberoptic inverter the data line
-  This function inverters the send data before transmitting 
+  The fiberoptic inverts the data line
+  This function inverts the send data before transmitting 
   and inverts the received data before returning it.
 */
 
@@ -1219,8 +1219,8 @@ void DoA36772(void) {
     slave_board_data.log_data[7] = global_data_A36772.input_htr_v_mon.reading_scaled_and_calibrated;
     slave_board_data.log_data[8] = global_data_A36772.analog_output_high_voltage.set_point;
     slave_board_data.log_data[9] = global_data_A36772.heater_current_target;
-    slave_board_data.log_data[10] = global_data_A36772.analog_output_top_voltage.set_point;       //gdoc says low energy
-    slave_board_data.log_data[11] = global_data_A36772.analog_output_top_voltage.set_point;       //gdoc says high energy
+    slave_board_data.log_data[10] = global_data_A36772.can_pulse_top_low_set_point;       //gdoc says low energy
+    slave_board_data.log_data[11] = global_data_A36772.can_pulse_top_high_set_point;       //gdoc says high energy
     slave_board_data.log_data[12] = global_data_A36772.input_bias_v_mon.reading_scaled_and_calibrated;
     slave_board_data.log_data[13] = global_data_A36772.control_state;
     slave_board_data.log_data[14] = global_data_A36772.adc_read_error_count;
@@ -1473,11 +1473,6 @@ void UpdateFaults(void) {
     global_data_A36772.input_hv_v_mon.target_value = global_data_A36772.analog_output_high_voltage.set_point;
     global_data_A36772.input_top_v_mon.target_value = global_data_A36772.analog_output_top_voltage.set_point;
 
-/*     // If the set point is less that 1.5 V clear the under current counter
-    if (global_data_A36772.analog_output_heater_voltage.set_point < 1500) {
-      global_data_A36772.input_htr_v_mon.absolute_under_counter = 0;
-    }
- */ 
     
     if (ETMAnalogCheckOverAbsolute(&global_data_A36772.input_htr_i_mon)) {  
       _FAULT_ADC_HTR_I_MON_OVER_ABSOLUTE = 1;
@@ -1790,9 +1785,9 @@ void ADCConfigure(void) {
   PIN_CS_ADC  = OLL_PIN_CS_ADC_SELECTED;
   __delay32(DELAY_FPGA_CABLE_DELAY);
 
-  temp = SPICharInvertered(MAX1230_SETUP_BYTE);
-  temp = SPICharInvertered(MAX1230_AVERAGE_BYTE);
-  temp = SPICharInvertered(MAX1230_RESET_BYTE);
+  temp = SPICharInverted(MAX1230_SETUP_BYTE);
+  temp = SPICharInverted(MAX1230_AVERAGE_BYTE);
+  temp = SPICharInverted(MAX1230_RESET_BYTE);
 
 
   PIN_CS_ADC  = !OLL_PIN_CS_ADC_SELECTED;
@@ -1811,7 +1806,7 @@ void ADCStartAcquisition(void) {
   PIN_CS_ADC  = OLL_PIN_CS_ADC_SELECTED;
   __delay32(DELAY_FPGA_CABLE_DELAY);
 
-  temp = SPICharInvertered(MAX1230_CONVERSION_BYTE);
+  temp = SPICharInverted(MAX1230_CONVERSION_BYTE);
 
   PIN_CS_ADC  = !OLL_PIN_CS_ADC_SELECTED;
   __delay32(DELAY_FPGA_CABLE_DELAY);
@@ -1839,9 +1834,9 @@ void UpdateADCResults(void) {
   __delay32(DELAY_FPGA_CABLE_DELAY);
 
   for (n = 0; n < 17; n++) {
-    read_data[n]   = SPICharInvertered(0);
+    read_data[n]   = SPICharInverted(0);
     read_data[n] <<= 8;
-    read_data[n]  += SPICharInvertered(0);
+    read_data[n]  += SPICharInverted(0);
   }
   
 
@@ -1973,17 +1968,17 @@ void DACWriteChannel(unsigned int command_word, unsigned int data_word) {
     __delay32(DELAY_FPGA_CABLE_DELAY);
     
     spi_char = (command_word >> 8) & 0x00FF;
-    command_word_check   = SPICharInvertered(spi_char);
+    command_word_check   = SPICharInverted(spi_char);
     command_word_check <<= 8;
     spi_char = command_word & 0x00FF; 
-    command_word_check  += SPICharInvertered(spi_char);
+    command_word_check  += SPICharInverted(spi_char);
     
 
     spi_char = (data_word >> 8) & 0x00FF;
-    data_word_check      = SPICharInvertered(spi_char);
+    data_word_check      = SPICharInverted(spi_char);
     data_word_check    <<= 8;
     spi_char = data_word & 0x00FF; 
-    data_word_check     += SPICharInvertered(spi_char);
+    data_word_check     += SPICharInverted(spi_char);
     
     PIN_CS_DAC = !OLL_PIN_CS_DAC_SELECTED;
     __delay32(DELAY_FPGA_CABLE_DELAY);
@@ -1996,16 +1991,16 @@ void DACWriteChannel(unsigned int command_word, unsigned int data_word) {
     __delay32(DELAY_FPGA_CABLE_DELAY);
 
     spi_char = (LTC265X_CMD_NO_OPERATION >> 8) & 0x00FF;
-    command_word_check   = SPICharInvertered(spi_char);
+    command_word_check   = SPICharInverted(spi_char);
     command_word_check <<= 8;
     spi_char = LTC265X_CMD_NO_OPERATION & 0x00FF; 
-    command_word_check  += SPICharInvertered(spi_char);
+    command_word_check  += SPICharInverted(spi_char);
     
     spi_char = 0;
-    data_word_check      = SPICharInvertered(spi_char);
+    data_word_check      = SPICharInverted(spi_char);
     data_word_check    <<= 8;
     spi_char = 0;
-    data_word_check     += SPICharInvertered(spi_char);
+    data_word_check     += SPICharInverted(spi_char);
 
 
     PIN_CS_DAC = !OLL_PIN_CS_DAC_SELECTED;
@@ -2067,13 +2062,13 @@ void FPGAReadData(void) {
   PIN_CS_FPGA = OLL_PIN_CS_FPGA_SELECTED;
   __delay32(DELAY_FPGA_CABLE_DELAY);
 
-  bits   = SPICharInvertered(0xFF);
+  bits   = SPICharInverted(0xFF);
   bits <<= 8;
-  bits  += SPICharInvertered(0xFF);
+  bits  += SPICharInverted(0xFF);
   bits <<= 8;
-  bits  += SPICharInvertered(0xFF);
+  bits  += SPICharInverted(0xFF);
   bits <<= 8;
-  bits  += SPICharInvertered(0xFF);
+  bits  += SPICharInverted(0xFF);
   
 
   PIN_CS_FPGA = !OLL_PIN_CS_FPGA_SELECTED;
@@ -2235,7 +2230,7 @@ void FPGAReadData(void) {
 }
 
 
-unsigned char SPICharInvertered(unsigned char transmit_byte) {
+unsigned char SPICharInverted(unsigned char transmit_byte) {
   unsigned int transmit_word;
   unsigned int receive_word;
   transmit_word = ((~transmit_byte) & 0x00FF);
