@@ -129,11 +129,10 @@ void DoStateMachine(void) {
     _CONTROL_NOT_CONFIGURED = 1;
     _CONTROL_NOT_READY = 1;
     _FAULT_SPI_COMMUNICATION = 0;
-    global_data_A36772.watchdog_set_mode = WATCHDOG_MODE_0;
-    global_data_A36772.watchdog_state_change = 1;
     global_data_A36772.control_config = 0;
     global_data_A36772.heater_start_up_attempts = 0;
     global_data_A36772.run_time_counter = 0;
+    global_data_A36772.watchdog_counter = 0;
     global_data_A36772.reset_active = 0;
 
 #ifndef __CAN_REFERENCE
@@ -147,7 +146,6 @@ void DoStateMachine(void) {
     DisableBeam();
     DisableHighVoltage();
     DisableHeater();
-    global_data_A36772.watchdog_counter = 0;
     while (global_data_A36772.control_state == STATE_WAIT_FOR_CONFIG) {
       DoA36772();
       DoStartupLEDs();
@@ -172,10 +170,13 @@ void DoStateMachine(void) {
     global_data_A36772.heater_operational = 0;
     global_data_A36772.heater_start_up_attempts++;
     global_data_A36772.initial_ramp_timer = 0;
-    global_data_A36772.watchdog_counter = 0;
+//    global_data_A36772.watchdog_counter = 0;
+    global_data_A36772.watchdog_set_mode = WATCHDOG_MODE_0;
+    global_data_A36772.dac_digital_watchdog_oscillator = WATCHDOG_VALUE_0;
     DisableBeam();
     DisableHighVoltage();
     EnableHeater();
+    DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_H, global_data_A36772.dac_digital_watchdog_oscillator);
     while (global_data_A36772.control_state == STATE_HEATER_RAMP_UP) {
       DoA36772();
       if (global_data_A36772.set_current_reached == 1) {
@@ -285,7 +286,7 @@ void DoStateMachine(void) {
         global_data_A36772.control_state = STATE_HEATER_WARM_UP_DONE;
       }
       if (_FAULT_ADC_HV_V_MON_UNDER_RELATIVE) {
-        if (PIN_CUSTOMER_HV_ON != ILL_PIN_CUSTOMER_HV_ON_ENABLE_HV) {
+        if (PIN_INTERLOCK_RELAY_CLOSED != ILL_PIN_CUSTOMER_HV_ON_ENABLE_HV) {
           _STATUS_INTERLOCK_INHIBITING_HV = 1;
         }
       }  
@@ -441,6 +442,7 @@ void DoStateMachine(void) {
     DisableBeam();
     DisableHighVoltage();
     DisableHeater();
+    ETMCanSlaveDoCan();
 //    ETMAnalogClearFaultCounters(&global_data_A36772.input_htr_v_mon);
 //    ETMAnalogClearFaultCounters(&global_data_A36772.input_htr_i_mon);
 //    ETMAnalogClearFaultCounters(&global_data_A36772.input_bias_v_mon);
@@ -1147,7 +1149,13 @@ void DoA36772(void) {
     }
     global_data_A36772.previous_state_pin_customer_hv_on = PIN_CUSTOMER_HV_ON;
 #endif
-    
+
+    if (_STATUS_INTERLOCK_INHIBITING_HV != 0) {
+      if ((global_data_A36772.control_state < STATE_POWER_SUPPLY_RAMP_UP) ||
+          (PIN_INTERLOCK_RELAY_CLOSED == ILL_PIN_CUSTOMER_HV_ON_ENABLE_HV)) {
+        _STATUS_INTERLOCK_INHIBITING_HV = 0;
+      }
+    }
 
     // Update to counter used to flash the LEDs at startup and time transmits to DACs
     if (global_data_A36772.power_supply_startup_remaining) {
@@ -1178,38 +1186,41 @@ void DoA36772(void) {
     // Start the next acquisition from the external ADC
     ADCStartAcquisition();
     
-    
-    if (global_data_A36772.watchdog_set_mode == WATCHDOG_MODE_0) {
-      if ((global_data_A36772.input_dac_monitor.filtered_adc_reading > MIN_WD_VALUE_0) &&
-            (global_data_A36772.input_dac_monitor.filtered_adc_reading < MAX_WD_VALUE_0)) {
-        global_data_A36772.watchdog_counter = 0;
-        global_data_A36772.watchdog_state_change = 1;
-        global_data_A36772.watchdog_set_mode = WATCHDOG_MODE_1;
-        global_data_A36772.dac_digital_watchdog_oscillator = WATCHDOG_VALUE_1;
-        DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_H, global_data_A36772.dac_digital_watchdog_oscillator);   
+    if (global_data_A36772.control_state != STATE_WAIT_FOR_CONFIG) {
+      if (global_data_A36772.watchdog_set_mode == WATCHDOG_MODE_0) {
+        if ((global_data_A36772.input_dac_monitor.filtered_adc_reading > MIN_WD_VALUE_0) &&
+              (global_data_A36772.input_dac_monitor.filtered_adc_reading < MAX_WD_VALUE_0)) {
+          global_data_A36772.watchdog_counter = 0;
+          global_data_A36772.watchdog_state_change = 1;
+          global_data_A36772.watchdog_set_mode = WATCHDOG_MODE_1;
+          global_data_A36772.dac_digital_watchdog_oscillator = WATCHDOG_VALUE_1;
+          DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_H, global_data_A36772.dac_digital_watchdog_oscillator);   
+        } else {
+          global_data_A36772.watchdog_counter++;
+          global_data_A36772.dac_digital_watchdog_oscillator = WATCHDOG_VALUE_0;
+        }   
+      } else if (global_data_A36772.watchdog_set_mode == WATCHDOG_MODE_1) {
+        if ((global_data_A36772.input_dac_monitor.filtered_adc_reading > MIN_WD_VALUE_1) &&
+              (global_data_A36772.input_dac_monitor.filtered_adc_reading < MAX_WD_VALUE_1)) {
+          global_data_A36772.watchdog_counter = 0;
+          global_data_A36772.watchdog_state_change = 1;
+          global_data_A36772.watchdog_set_mode = WATCHDOG_MODE_0;
+          global_data_A36772.dac_digital_watchdog_oscillator = WATCHDOG_VALUE_0;
+          DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_H, global_data_A36772.dac_digital_watchdog_oscillator);  
+        } else {
+          global_data_A36772.watchdog_counter++;
+          global_data_A36772.dac_digital_watchdog_oscillator = WATCHDOG_VALUE_1;
+        }     
       } else {
-        global_data_A36772.watchdog_counter++;
-        global_data_A36772.dac_digital_watchdog_oscillator = WATCHDOG_VALUE_0;
-      }   
-    } else if (global_data_A36772.watchdog_set_mode == WATCHDOG_MODE_1) {
-      if ((global_data_A36772.input_dac_monitor.filtered_adc_reading > MIN_WD_VALUE_1) &&
-            (global_data_A36772.input_dac_monitor.filtered_adc_reading < MAX_WD_VALUE_1)) {
-        global_data_A36772.watchdog_counter = 0;
-        global_data_A36772.watchdog_state_change = 1;
         global_data_A36772.watchdog_set_mode = WATCHDOG_MODE_0;
-        global_data_A36772.dac_digital_watchdog_oscillator = WATCHDOG_VALUE_0;
-        DACWriteChannel(LTC265X_WRITE_AND_UPDATE_DAC_H, global_data_A36772.dac_digital_watchdog_oscillator);  
-      } else {
-        global_data_A36772.watchdog_counter++;
-        global_data_A36772.dac_digital_watchdog_oscillator = WATCHDOG_VALUE_1;
-      }     
-    } else {
-      global_data_A36772.watchdog_set_mode = WATCHDOG_MODE_0;
+      }
     }
     
+
     if (dac_resets_debug < global_data_A36772.watchdog_counter) {
       dac_resets_debug++;
     }
+
 
     if (global_data_A36772.reset_debug) {
       dac_resets_debug = 0;  
