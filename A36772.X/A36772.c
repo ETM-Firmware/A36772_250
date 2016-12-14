@@ -882,6 +882,7 @@ void ResetAllFaultInfo(void) {
   _FAULT_HEATER_STARTUP_FAILURE = 0;
   _FAULT_CAN_COMMUNICATION = 0;
 //  _FAULT_SPI_COMMUNICATION = 0;
+  _STATUS_OLD_WATCHDOG_FAULT = 0;
   _STATUS_INTERLOCK_INHIBITING_HV = 0;
   _STATUS_HEATER_AT_OPERATING_CURRENT = 0;
   _STATUS_CUSTOMER_HV_ON = 0;
@@ -899,7 +900,7 @@ void ResetAllFaultInfo(void) {
   _FPGA_MODULE_TEMP_GREATER_THAN_75_C            = 0;
 //  _FPGA_PULSE_WIDTH_LIMITING                     = 0;
 //  _FPGA_PRF_FAULT                                = 0;
-  _FPGA_CURRENT_MONITOR_PULSE_WIDTH_FAULT        = 0;
+//  _FPGA_CURRENT_MONITOR_PULSE_WIDTH_FAULT        = 0;
   _FPGA_GRID_MODULE_HARDWARE_FAULT               = 0;
   _FPGA_GRID_MODULE_OVER_VOLTAGE_FAULT           = 0;
   _FPGA_GRID_MODULE_UNDER_VOLTAGE_FAULT          = 0;
@@ -1518,6 +1519,12 @@ void UpdateFaults(void) {
       _FAULT_ADC_DIGITAL_ARC = 0;
     }  
     
+    if (global_data_A36772.adc_digital_watchdog_flt.filtered_reading == 0) {
+      _STATUS_OLD_WATCHDOG_FAULT = 1;
+    } else if (global_data_A36772.reset_active) {
+      _STATUS_OLD_WATCHDOG_FAULT = 0;
+    }  
+    
     if (global_data_A36772.adc_digital_over_temp_flt.filtered_reading == 0) {
       _FAULT_ADC_DIGITAL_OVER_TEMP = 1;
     } else if (global_data_A36772.reset_active) {
@@ -1977,11 +1984,11 @@ void UpdateADCResults(void) {
       ETMDigitalUpdateInput(&global_data_A36772.adc_digital_warmup_flt, 0);
     }
     
-//    if (read_data[11] > ADC_DATA_DIGITAL_HIGH) {
-//      ETMDigitalUpdateInput(&global_data_A36772.adc_digital_watchdog_flt, 1);
-//    } else {
-//      ETMDigitalUpdateInput(&global_data_A36772.adc_digital_watchdog_flt, 0);
-//    }
+    if (read_data[11] > ADC_DATA_DIGITAL_HIGH) {
+      ETMDigitalUpdateInput(&global_data_A36772.adc_digital_watchdog_flt, 1);
+    } else {
+      ETMDigitalUpdateInput(&global_data_A36772.adc_digital_watchdog_flt, 0);
+    }
     
     if (read_data[12] > ADC_DATA_DIGITAL_HIGH) {
       ETMDigitalUpdateInput(&global_data_A36772.adc_digital_arc_flt, 1);
@@ -2221,12 +2228,12 @@ void FPGAReadData(void) {
     
 
     // Check Current Monitor Pulse Width Fault (NOT LATCHED)
-    ETMDigitalUpdateInput(&global_data_A36772.fpga_current_monitor_pulse_width_fault, fpga_bits.current_monitor_pulse_width_fault);
-    if (global_data_A36772.fpga_current_monitor_pulse_width_fault.filtered_reading) {
-      _FPGA_CURRENT_MONITOR_PULSE_WIDTH_FAULT = 1;
-    } else {
-      _FPGA_CURRENT_MONITOR_PULSE_WIDTH_FAULT = 0;
-    }
+    // ETMDigitalUpdateInput(&global_data_A36772.fpga_current_monitor_pulse_width_fault, fpga_bits.current_monitor_pulse_width_fault);
+    // if (global_data_A36772.fpga_current_monitor_pulse_width_fault.filtered_reading) {
+      // _FPGA_CURRENT_MONITOR_PULSE_WIDTH_FAULT = 1;
+    // } else {
+      // _FPGA_CURRENT_MONITOR_PULSE_WIDTH_FAULT = 0;
+    // }
     
     // Check the heater voltage less than 4.5 Volts (LATCHED)
     ETMDigitalUpdateInput(&global_data_A36772.fpga_heater_voltage_less_than_4_5_volts, fpga_bits.heater_voltage_less_than_4_5_volts);
