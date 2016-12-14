@@ -445,7 +445,8 @@ extern TYPE_GLOBAL_DATA_A36772 global_data_A36772;
 #define _STATUS_SPI_COM_FAULTED                        _WARNING_9
 //#define _FPGA_PULSE_WIDTH_LIMITING                     _WARNING_9
 //#define _FPGA_PRF_FAULT                                _WARNING_9
-#define _FPGA_CURRENT_MONITOR_PULSE_WIDTH_FAULT        _WARNING_A
+//#define _FPGA_CURRENT_MONITOR_PULSE_WIDTH_FAULT        _WARNING_A
+#define _STATUS_OLD_WATCHDOG_FAULT                     _WARNING_A
 #define _FPGA_GRID_MODULE_HARDWARE_FAULT               _WARNING_B
 #define _FPGA_GRID_MODULE_OVER_VOLTAGE_FAULT           _WARNING_B
 #define _FPGA_GRID_MODULE_UNDER_VOLTAGE_FAULT          _WARNING_B

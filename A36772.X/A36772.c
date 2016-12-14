@@ -877,6 +877,7 @@ void ResetAllFaultInfo(void) {
 //  _FAULT_ADC_DIGITAL_WATCHDOG = 0;
   _FAULT_ADC_DIGITAL_ARC = 0;
   _FAULT_ADC_DIGITAL_OVER_TEMP = 0;
+  _STATUS_OLD_WATCHDOG_FAULT = 0;
 //  _FAULT_ADC_DIGITAL_PULSE_WIDTH_DUTY = 0;
   _FAULT_ADC_DIGITAL_GRID = 0;
   _FAULT_CONVERTER_LOGIC_ADC_READ_FAILURE = 0;
@@ -1529,6 +1530,12 @@ void UpdateFaults(void) {
       _FAULT_ADC_DIGITAL_ARC = 0;
     }  
     
+    if (global_data_A36772.adc_digital_watchdog_flt.filtered_reading == 0) {
+      _STATUS_OLD_WATCHDOG_FAULT = 1;
+    } else if (global_data_A36772.reset_active) {
+      _STATUS_OLD_WATCHDOG_FAULT = 0;
+    }      
+    
     if (global_data_A36772.adc_digital_over_temp_flt.filtered_reading == 0) {
       _FAULT_ADC_DIGITAL_OVER_TEMP = 1;
     } else if (global_data_A36772.reset_active) {
@@ -1988,11 +1995,11 @@ void UpdateADCResults(void) {
       ETMDigitalUpdateInput(&global_data_A36772.adc_digital_warmup_flt, 0);
     }
     
-//    if (read_data[11] > ADC_DATA_DIGITAL_HIGH) {
-//      ETMDigitalUpdateInput(&global_data_A36772.adc_digital_watchdog_flt, 1);
-//    } else {
-//      ETMDigitalUpdateInput(&global_data_A36772.adc_digital_watchdog_flt, 0);
-//    }
+   if (read_data[11] > ADC_DATA_DIGITAL_HIGH) {
+     ETMDigitalUpdateInput(&global_data_A36772.adc_digital_watchdog_flt, 1);
+   } else {
+     ETMDigitalUpdateInput(&global_data_A36772.adc_digital_watchdog_flt, 0);
+   }
     
     if (read_data[12] > ADC_DATA_DIGITAL_HIGH) {
       ETMDigitalUpdateInput(&global_data_A36772.adc_digital_arc_flt, 1);
