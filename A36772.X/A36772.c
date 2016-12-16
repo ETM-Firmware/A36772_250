@@ -441,6 +441,7 @@ void DoStateMachine(void) {
     DisableBeam();
     DisableHighVoltage();
     DisableHeater();
+    ETMCanSlaveDoCan();
 //    ETMAnalogClearFaultCounters(&global_data_A36772.input_htr_v_mon);
 //    ETMAnalogClearFaultCounters(&global_data_A36772.input_htr_i_mon);
 //    ETMAnalogClearFaultCounters(&global_data_A36772.input_bias_v_mon);
@@ -908,7 +909,7 @@ void ResetAllFaultInfo(void) {
   _FPGA_HV_REGULATION_WARNING                    = 0;
   _FPGA_DIPSWITCH_1_ON                           = 0;
   _FPGA_TEST_MODE_TOGGLE_SWITCH_TEST_MODE        = 0;
-  _FPGA_LOCAL_MODE_TOGGLE_SWITCH_LOCAL_MODE      = 0;
+//  _FPGA_LOCAL_MODE_TOGGLE_SWITCH_LOCAL_MODE      = 0;
 
 
   // Initialize Digital Input Filters for FPGA Status
@@ -2301,12 +2302,12 @@ void FPGAReadData(void) {
     }
     
     // Check local mode toggle switch (NOT LATCHED)
-    ETMDigitalUpdateInput(&global_data_A36772.fpga_local_mode_toggle_switch_set_to_local, fpga_bits.local_mode_toggle_switch_set_to_local);
-    if (global_data_A36772.fpga_local_mode_toggle_switch_set_to_local.filtered_reading) {
-      _FPGA_LOCAL_MODE_TOGGLE_SWITCH_LOCAL_MODE = 1;
-    } else {
-      _FPGA_LOCAL_MODE_TOGGLE_SWITCH_LOCAL_MODE = 0;
-    }
+//    ETMDigitalUpdateInput(&global_data_A36772.fpga_local_mode_toggle_switch_set_to_local, fpga_bits.local_mode_toggle_switch_set_to_local);
+//    if (global_data_A36772.fpga_local_mode_toggle_switch_set_to_local.filtered_reading) {
+//      _FPGA_LOCAL_MODE_TOGGLE_SWITCH_LOCAL_MODE = 1;
+//    } else {
+//      _FPGA_LOCAL_MODE_TOGGLE_SWITCH_LOCAL_MODE = 0;
+//    }
 
   }
 }
