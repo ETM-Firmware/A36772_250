@@ -1382,6 +1382,25 @@ void DoA36772(void) {
     ETMAnalogScaleCalibrateDACSetting(&global_data_A36772.monitor_cathode_voltage);
     ETMAnalogScaleCalibrateDACSetting(&global_data_A36772.monitor_grid_voltage);
 
+	global_data_A36772.sample_index = ETMCanSlaveGetPulseCount();
+	
+	
+	//Section below for high speed logging  -  Keep commented out unless AFC is being ignored by ECB
+	if (ETMCanSlaveGetSyncMsgHighSpeedLogging()) {
+      ETMCanSlaveLogPulseData(ETM_CAN_DATA_LOG_REGISTER_AFC_FAST_LOG_0,
+                              global_data_A36772.sample_index,
+                              global_data_A36772.hs_log_word_0,
+                              global_data_A36772.hs_log_word_1,
+                              0x0000);
+    
+      ETMCanSlaveLogPulseData(ETM_CAN_DATA_LOG_REGISTER_AFC_FAST_LOG_1,
+                              global_data_A36772.sample_index,
+                              global_data_A36772.hs_log_word_2,
+                              global_data_A36772.hs_log_word_3,
+                              global_data_A36772.hs_log_word_4);
+    }
+	
+	
     // Send out Data to local DAC and offboard.  Each channel will be updated once every 80mS
     // Do not send out while in state "STATE_WAIT_FOR_CONFIG" because the module is not ready to recieve data and
     // you will just get data transfer errors

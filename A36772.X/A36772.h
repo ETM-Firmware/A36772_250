@@ -317,6 +317,15 @@ typedef struct {
   unsigned int heater_voltage_current_limited;  // This counter is used to track how long the heater is opperating in current limited mode. 
   unsigned int previous_state_pin_customer_hv_on;  // This stores the previous state of customer HV on input.  An On -> Off transion of this pin is used to generate a reset in discrete control mode
 
+  
+  //For high speed logging
+  unsigned int hs_log_word_0;
+  unsigned int hs_log_word_1;
+  unsigned int hs_log_word_2;
+  unsigned int hs_log_word_3;
+  unsigned int hs_log_word_4;
+  unsigned int sample_index;
+ 
 
   // These are the Data Structures for the DAC outputs on the converter logic board
   AnalogOutput analog_output_high_voltage;
