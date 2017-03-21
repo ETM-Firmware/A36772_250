@@ -214,6 +214,7 @@ void DoStateMachine(void) {
         global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
       }
     }
+    break;
   
   case STATE_HEATER_WARM_UP_DONE:
     _CONTROL_NOT_READY = 1;
@@ -896,7 +897,7 @@ void ResetAllFaultInfo(void) {
   _FPGA_FIRMWARE_MINOR_REV_MISMATCH              = 0;
   _FPGA_ARC_COUNTER_GREATER_ZERO                 = 0;
   _FPGA_ARC_HIGH_VOLTAGE_INHIBIT_ACTIVE          = 0;
-  _FPGA_HEATER_VOLTAGE_LESS_THAN_4_5_VOLTS       = 0;
+//  _FPGA_HEATER_VOLTAGE_LESS_THAN_4_5_VOLTS       = 0;
   _FPGA_MODULE_TEMP_GREATER_THAN_65_C            = 0;
   _FPGA_MODULE_TEMP_GREATER_THAN_75_C            = 0;
 //  _FPGA_PULSE_WIDTH_LIMITING                     = 0;
@@ -1871,9 +1872,9 @@ void ADCConfigure(void) {
   PIN_CS_ADC  = OLL_PIN_CS_ADC_SELECTED;
   __delay32(DELAY_FPGA_CABLE_DELAY);
 
+  temp = SPICharInvertered(MAX1230_RESET_BYTE);
   temp = SPICharInvertered(MAX1230_SETUP_BYTE);
   temp = SPICharInvertered(MAX1230_AVERAGE_BYTE);
-  temp = SPICharInvertered(MAX1230_RESET_BYTE);
 
 
   PIN_CS_ADC  = !OLL_PIN_CS_ADC_SELECTED;
@@ -1963,6 +1964,7 @@ void UpdateADCResults(void) {
     global_data_A36772.adc_read_error_count++;
     global_data_A36772.adc_read_error_test++;
     global_data_A36772.adc_read_ok = 0;
+    ADCConfigure();
   } else {
     // The data passed the most basic test.  Load the values into RAM
     global_data_A36772.adc_read_ok = 1;
@@ -2240,12 +2242,12 @@ void FPGAReadData(void) {
     }
     
     // Check the heater voltage less than 4.5 Volts (LATCHED)
-    ETMDigitalUpdateInput(&global_data_A36772.fpga_heater_voltage_less_than_4_5_volts, fpga_bits.heater_voltage_less_than_4_5_volts);
-    if (global_data_A36772.fpga_heater_voltage_less_than_4_5_volts.filtered_reading) {
-      _FPGA_HEATER_VOLTAGE_LESS_THAN_4_5_VOLTS = 1;
-    } else if (global_data_A36772.reset_active) {
-      _FPGA_HEATER_VOLTAGE_LESS_THAN_4_5_VOLTS = 0;
-    }
+//    ETMDigitalUpdateInput(&global_data_A36772.fpga_heater_voltage_less_than_4_5_volts, fpga_bits.heater_voltage_less_than_4_5_volts);
+//    if (global_data_A36772.fpga_heater_voltage_less_than_4_5_volts.filtered_reading) {
+//      _FPGA_HEATER_VOLTAGE_LESS_THAN_4_5_VOLTS = 1;
+//    } else if (global_data_A36772.reset_active) {
+//      _FPGA_HEATER_VOLTAGE_LESS_THAN_4_5_VOLTS = 0;
+//    }
 
     // Check grid module hardware fault (NOT LATCHED)
     ETMDigitalUpdateInput(&global_data_A36772.fpga_grid_module_hardware_fault, fpga_bits.grid_module_hardware_fault);

@@ -186,7 +186,7 @@
 #define PIN_RESET_DETECT_OUTPUT                      _LATG14
 #define PIN_RESET_DETECT_INPUT                       _RG14
 
-#define PIN_TEST_POINT_B                             _LATF5
+#define PIN_TEST_POINT_B                             _LATD9
 #define PIN_TEST_POINT_E                             _LATB8
 #define PIN_TEST_POINT_F                             _LATB9
 
@@ -270,7 +270,8 @@
   
 // MAX1230 Control Words
 #define MAX1230_CONVERSION_BYTE                      0b10000011
-#define MAX1230_SETUP_BYTE                           0b01101000
+//#define MAX1230_SETUP_BYTE                           0b01101000    //with internal ref
+#define MAX1230_SETUP_BYTE                           0b01100100    //with external ref
 #define MAX1230_AVERAGE_BYTE                         0b00111000
 #define MAX1230_RESET_BYTE                           0b00010000
 
@@ -454,7 +455,7 @@ extern TYPE_GLOBAL_DATA_A36772 global_data_A36772;
 #define _FPGA_DIPSWITCH_1_ON                           _WARNING_D
 #define _FPGA_TEST_MODE_TOGGLE_SWITCH_TEST_MODE        _WARNING_E
 #define _FPGA_LOCAL_MODE_TOGGLE_SWITCH_LOCAL_MODE      _WARNING_F
-#define _FPGA_HEATER_VOLTAGE_LESS_THAN_4_5_VOLTS       _WARNING_9
+// #define _FPGA_HEATER_VOLTAGE_LESS_THAN_4_5_VOLTS       _WARNING_9
 
 
 #define ETM_CAN_REGISTER_GUN_DRIVER_RESET_FPGA        0x8202
