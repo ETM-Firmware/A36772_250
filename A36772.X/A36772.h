@@ -270,8 +270,8 @@
   
 // MAX1230 Control Words
 #define MAX1230_CONVERSION_BYTE                      0b10000011
-//#define MAX1230_SETUP_BYTE                           0b01101000    //with internal ref
-#define MAX1230_SETUP_BYTE                           0b01100100    //with external ref
+#define MAX1230_SETUP_BYTE                           0b01101000    //with internal ref
+//#define MAX1230_SETUP_BYTE                           0b01100100    //with external ref
 #define MAX1230_AVERAGE_BYTE                         0b00111000
 #define MAX1230_RESET_BYTE                           0b00010000
 
