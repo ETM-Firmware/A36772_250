@@ -181,7 +181,7 @@
 #define ADC_HTR_V_MON_FIXED_SCALE             .13875
 #define ADC_HTR_V_MON_FIXED_OFFSET            0
 #define	ADC_HTR_V_MON_OVER_LIMIT_ABSOLUTE     HTR_OV_ABS
-#define	ADC_HTR_V_MON_UNDER_LIMIT_ABSOLUTE    4000
+#define	ADC_HTR_V_MON_UNDER_LIMIT_ABSOLUTE    3000
 #define ADC_HTR_V_MON_ABSOLUTE_TRIP_TIME      50                                // 500mS
 
 

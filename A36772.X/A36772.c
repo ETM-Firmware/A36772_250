@@ -213,7 +213,8 @@ void DoStateMachine(void) {
         global_data_A36772.control_state = STATE_FAULT_HEATER_OFF;
       }
     }
-  
+    break;
+    
   case STATE_HEATER_WARM_UP_DONE:
     _CONTROL_NOT_READY = 1;
     DisableBeam();
