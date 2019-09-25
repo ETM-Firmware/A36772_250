@@ -1298,15 +1298,18 @@ void DoA36772(void) {
     
     c = &a ->reading_scaled_and_calibrated;*/
     
-    int resistance;
-	int voltage;
-	int current;
-	
-	voltage = global_data_A36772.input_htr_v_mon.reading_scaled_and_calibrated;
-	current = global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated;
-    resistance = ((voltage/current));
+    float resistance = 0;
+    int scaled_resistance = 0;
+    float Scaled_htr_v = 0;
+    float Scaled_htr_i = 0;
+    
+    Scaled_htr_v = (global_data_A36772.input_htr_v_mon.reading_scaled_and_calibrated/100);
+    Scaled_htr_i = (global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated/100);
+    resistance = Scaled_htr_v/Scaled_htr_i;
+    scaled_resistance = resistance*100;
 
-    slave_board_data.log_data[0] = resistance;//global_data_A36772.input_gun_i_peak.reading_scaled_and_calibrated;
+
+    slave_board_data.log_data[0] = scaled_resistance;//global_data_A36772.input_gun_i_peak.reading_scaled_and_calibrated;
     slave_board_data.log_data[1] = global_data_A36772.input_hv_v_mon.reading_scaled_and_calibrated;
     slave_board_data.log_data[2] = global_data_A36772.input_top_v_mon.reading_scaled_and_calibrated;    //gdoc says low energy
     slave_board_data.log_data[3] = global_data_A36772.input_top_v_mon.reading_scaled_and_calibrated;    //gdoc says high energy

@@ -392,6 +392,7 @@ typedef struct {
   AnalogInput  ref_ek;      // an13
   AnalogInput  pos_15v_mon; // an14
   AnalogInput  neg_15v_mon; // an15
+  AnalogInput  resistance;
   
 } TYPE_GLOBAL_DATA_A36772;
 
