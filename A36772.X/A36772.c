@@ -1279,8 +1279,34 @@ void DoA36772(void) {
     ETMCanSlaveSetDebugRegister(0xE, dac_resets_debug);
     ETMCanSlaveSetDebugRegister(0xF, global_data_A36772.control_state);
 
+    /*TYPE_GLOBAL_DATA_A36772 current;
+    TYPE_GLOBAL_DATA_A36772 voltage;
+    TYPE_GLOBAL_DATA_A36772 resistance;
+    
+    current = &global_data_A36772 -> input_htr_i_mon -> reading_scaled_and_calibrated;
+    voltage = &global_data_A36772 ->input_htr_v_mon -> reading_scaled_and_calibrated;
+    resistance = voltage/current;
+    
+    struct AnalogInput *pointer, input_htr_v_mon;
+    AnalogInput a;
+    AnalogInput b;
+    
+    a = &global_data_A36772 ->input_htr_v_mon;
+    
+    int c;
+    int d;
+    
+    c = &a ->reading_scaled_and_calibrated;*/
+    
+    int resistance;
+	int voltage;
+	int current;
+	
+	voltage = global_data_A36772.input_htr_v_mon.reading_scaled_and_calibrated;
+	current = global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated;
+    resistance = ((voltage/current));
 
-    slave_board_data.log_data[0] = global_data_A36772.input_gun_i_peak.reading_scaled_and_calibrated;
+    slave_board_data.log_data[0] = resistance;//global_data_A36772.input_gun_i_peak.reading_scaled_and_calibrated;
     slave_board_data.log_data[1] = global_data_A36772.input_hv_v_mon.reading_scaled_and_calibrated;
     slave_board_data.log_data[2] = global_data_A36772.input_top_v_mon.reading_scaled_and_calibrated;    //gdoc says low energy
     slave_board_data.log_data[3] = global_data_A36772.input_top_v_mon.reading_scaled_and_calibrated;    //gdoc says high energy
