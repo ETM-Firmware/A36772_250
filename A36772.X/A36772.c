@@ -27,13 +27,6 @@ int scaled_resistance = 0;
 double Scaled_htr_v = 0;
 double Scaled_htr_i = 0;
 
-int loop = 0;
-int i;
-double average;
-double sum = 0.1;
-double Array [5] = {0, 0, 0, 0, 0};
-
-
 void DoStateMachine(void); // This handles the state machine for the interface board
 void InitializeA36772(void); // Initialize the A36772 for operation
 void DoStartupLEDs(void); // Used to flash the LEDs at startup
@@ -1299,33 +1292,33 @@ void DoA36772(void) {
         int d;
     
         c = &a ->reading_scaled_and_calibrated;*/
-/*
-        Scaled_htr_v = (global_data_A36772.input_htr_v_mon.reading_scaled_and_calibrated / 100);
-        Scaled_htr_i = (global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated / 100);
+        /*
+                Scaled_htr_v = (global_data_A36772.input_htr_v_mon.reading_scaled_and_calibrated / 100);
+                Scaled_htr_i = (global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated / 100);
+                resistance = Scaled_htr_v / Scaled_htr_i;
+
+                Array[loop] = resistance;
+                loop++;
+                if (loop >= 5) {
+                    loop = 0;
+                }
+
+                for (i = 0; i >= 5 ; i++) {
+                    if (i == 0) {
+                        sum = Array[i];
+                    } else {
+                        sum = sum + Array[i];
+                    }
+                }
+
+                average = sum / 5.0;
+                sum = 0;
+                scaled_resistance = Array[loop]*100;//average * 100; //Array[loop]*100;
+         */
+        Scaled_htr_v = ((double) global_data_A36772.input_htr_v_mon.reading_scaled_and_calibrated);
+        Scaled_htr_i = ((double) global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated);
         resistance = Scaled_htr_v / Scaled_htr_i;
-
-        Array[loop] = resistance;
-        loop++;
-        if (loop >= 5) {
-            loop = 0;
-        }
-
-        for (i = 0; i >= 5 ; i++) {
-            if (i == 0) {
-                sum = Array[i];
-            } else {
-                sum = sum + Array[i];
-            }
-        }
-
-        average = sum / 5.0;
-        sum = 0;
-        scaled_resistance = Array[loop]*100;//average * 100; //Array[loop]*100;
-*/
-        Scaled_htr_v = ((double)global_data_A36772.input_htr_v_mon.reading_scaled_and_calibrated);
-        Scaled_htr_i = ((double)global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated);
-        resistance = Scaled_htr_v / Scaled_htr_i;
-        scaled_resistance = (int)(resistance*1000);
+        scaled_resistance = (int) (resistance * 1000); //
 
         slave_board_data.log_data[0] = scaled_resistance; //global_data_A36772.input_gun_i_peak.reading_scaled_and_calibrated;
         slave_board_data.log_data[1] = global_data_A36772.input_hv_v_mon.reading_scaled_and_calibrated;
@@ -1380,25 +1373,51 @@ void DoA36772(void) {
             global_data_A36772.heater_current_target = MAX_PROGRAM_HTR_CURRENT;
         }
 
-        // Ramp the heater voltage
-        global_data_A36772.heater_ramp_interval++;
-        if (!global_data_A36772.heater_operational) {
-            if (global_data_A36772.heater_ramp_interval >= HEATER_RAMP_UP_TIME_PERIOD) {
-                global_data_A36772.heater_ramp_interval = 0;
-                if (global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated < global_data_A36772.heater_current_target) {
-                    global_data_A36772.analog_output_heater_voltage.set_point += HEATER_RAMP_UP_INCREMENT;
-                } else {
-                    global_data_A36772.set_current_reached = 1;
-                    global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_FINE_VOLT_INCREMENT;
+
+        if (scaled_resistance < 2000) {
+            // Ramp the heater voltage
+            global_data_A36772.heater_ramp_interval++;
+            if (!global_data_A36772.heater_operational) {
+                if (global_data_A36772.heater_ramp_interval >= HEATER_RAMP_UP_TIME_PERIOD) {
+                    global_data_A36772.heater_ramp_interval = 0;
+                    if (global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated < global_data_A36772.heater_current_target) {
+                        global_data_A36772.analog_output_heater_voltage.set_point += HEATER_RAMP_UP_INCREMENT;
+                    } else {
+                        global_data_A36772.set_current_reached = 1;
+                        global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_FINE_VOLT_INCREMENT;
+                    }
+                }
+            } else {
+                if (global_data_A36772.heater_ramp_interval >= HEATER_RAMP_UP_TIME_PERIOD) {
+                    global_data_A36772.heater_ramp_interval = 0;
+                    if (global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated < global_data_A36772.heater_current_target) {
+                        global_data_A36772.analog_output_heater_voltage.set_point += HEATER_FINE_VOLT_INCREMENT;
+                    } else if (global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated > global_data_A36772.heater_current_target) {
+                        global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_FINE_VOLT_INCREMENT;
+                    }
                 }
             }
-        } else {
-            if (global_data_A36772.heater_ramp_interval >= HEATER_RAMP_UP_TIME_PERIOD) {
-                global_data_A36772.heater_ramp_interval = 0;
-                if (global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated < global_data_A36772.heater_current_target) {
-                    global_data_A36772.analog_output_heater_voltage.set_point += HEATER_FINE_VOLT_INCREMENT;
-                } else if (global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated > global_data_A36772.heater_current_target) {
-                    global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_FINE_VOLT_INCREMENT;
+        } else if (scaled_resistance >= 2000) {
+            // Ramp the heater voltage
+            global_data_A36772.heater_ramp_interval++;
+            if (!global_data_A36772.heater_operational) {
+                if (global_data_A36772.heater_ramp_interval >= HEATER_RAMP_UP_TIME_PERIOD) {
+                    global_data_A36772.heater_ramp_interval = 0;
+                    if (scaled_resistance < 2500) {
+                        global_data_A36772.analog_output_heater_voltage.set_point += HEATER_RAMP_UP_INCREMENT;
+                    } else {
+                        global_data_A36772.set_current_reached = 1;
+                        global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_FINE_VOLT_INCREMENT;
+                    }
+                }
+            } else {
+                if (global_data_A36772.heater_ramp_interval >= HEATER_RAMP_UP_TIME_PERIOD) {
+                    global_data_A36772.heater_ramp_interval = 0;
+                    if (scaled_resistance < 2500) {
+                        global_data_A36772.analog_output_heater_voltage.set_point += HEATER_FINE_VOLT_INCREMENT;
+                    } else if (scaled_resistance > 2500) {
+                        global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_FINE_VOLT_INCREMENT;
+                    }
                 }
             }
         }
