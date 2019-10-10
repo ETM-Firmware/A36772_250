@@ -23,9 +23,14 @@ unsigned int dac_resets_debug = 0;
 
 //resistance variables
 double resistance = 0;
-int scaled_resistance = 0;
+unsigned int scaled_resistance = 0;
+unsigned int scaled_resistance_for_GUI = 0;
 double Scaled_htr_v = 0;
 double Scaled_htr_i = 0;
+
+int resistanceTimer = 0;
+int flag = 0;
+int ResistanceLimit = 3150;
 
 void DoStateMachine(void); // This handles the state machine for the interface board
 void InitializeA36772(void); // Initialize the A36772 for operation
@@ -1318,9 +1323,10 @@ void DoA36772(void) {
         Scaled_htr_v = ((double) global_data_A36772.input_htr_v_mon.reading_scaled_and_calibrated);
         Scaled_htr_i = ((double) global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated);
         resistance = Scaled_htr_v / Scaled_htr_i;
-        scaled_resistance = (int) (resistance * 1000); //
-
-        slave_board_data.log_data[0] = scaled_resistance; //global_data_A36772.input_gun_i_peak.reading_scaled_and_calibrated;
+        scaled_resistance = (unsigned int) (resistance * 1000); //
+        scaled_resistance_for_GUI = (unsigned int) (resistance * 10);
+        
+        slave_board_data.log_data[0] = scaled_resistance; //scaled_resistance; //global_data_A36772.input_gun_i_peak.reading_scaled_and_calibrated;
         slave_board_data.log_data[1] = global_data_A36772.input_hv_v_mon.reading_scaled_and_calibrated;
         slave_board_data.log_data[2] = global_data_A36772.input_top_v_mon.reading_scaled_and_calibrated; //gdoc says low energy
         slave_board_data.log_data[3] = global_data_A36772.input_top_v_mon.reading_scaled_and_calibrated; //gdoc says high energy
@@ -1373,53 +1379,67 @@ void DoA36772(void) {
             global_data_A36772.heater_current_target = MAX_PROGRAM_HTR_CURRENT;
         }
 
-
-        if (scaled_resistance < 2000) {
-            // Ramp the heater voltage
-            global_data_A36772.heater_ramp_interval++;
-            if (!global_data_A36772.heater_operational) {
-                if (global_data_A36772.heater_ramp_interval >= HEATER_RAMP_UP_TIME_PERIOD) {
-                    global_data_A36772.heater_ramp_interval = 0;
-                    if (global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated < global_data_A36772.heater_current_target) {
-                        global_data_A36772.analog_output_heater_voltage.set_point += HEATER_RAMP_UP_INCREMENT;
-                    } else {
-                        global_data_A36772.set_current_reached = 1;
-                        global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_FINE_VOLT_INCREMENT;
-                    }
+        
+        if (flag <= 1500){
+            if(global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated >= 1600){
+                flag++;
+            }
+        }
+        
+        if(flag <= 1500){
+        // Ramp the heater voltage
+        global_data_A36772.heater_ramp_interval++;
+        //resistanceTimer++;
+        if (!global_data_A36772.heater_operational) {
+            if (global_data_A36772.heater_ramp_interval >= HEATER_RAMP_UP_TIME_PERIOD2) {
+                global_data_A36772.heater_ramp_interval = 0;
+                if (global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated < global_data_A36772.heater_current_target) {
+                    global_data_A36772.analog_output_heater_voltage.set_point += HEATER_RAMP_UP_INCREMENT;
+                } else{
+                    //global_data_A36772.set_current_reached = 1;
+                    global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_FINE_VOLT_INCREMENT;
                 }
-            } else {
-                if (global_data_A36772.heater_ramp_interval >= HEATER_RAMP_UP_TIME_PERIOD) {
-                    global_data_A36772.heater_ramp_interval = 0;
-                    if (global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated < global_data_A36772.heater_current_target) {
-                        global_data_A36772.analog_output_heater_voltage.set_point += HEATER_FINE_VOLT_INCREMENT;
-                    } else if (global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated > global_data_A36772.heater_current_target) {
-                        global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_FINE_VOLT_INCREMENT;
+            }
+        } else {
+            if (global_data_A36772.heater_ramp_interval >= HEATER_RAMP_UP_TIME_PERIOD2) {
+                global_data_A36772.heater_ramp_interval = 0;
+                if (scaled_resistance < ResistanceLimit) {
+                    global_data_A36772.analog_output_heater_voltage.set_point += HEATER_FINE_VOLT_INCREMENT;
+                } else if (scaled_resistance > ResistanceLimit) {
+                    global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_FINE_VOLT_INCREMENT;
+                }
+            }
+        }
+        }else{
+        global_data_A36772.heater_ramp_interval++;
+        if (!global_data_A36772.heater_operational) {
+            if (global_data_A36772.heater_ramp_interval >= HEATER_RAMP_UP_TIME_PERIOD) {
+                global_data_A36772.heater_ramp_interval = 0;
+                if (scaled_resistance < ResistanceLimit && global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated < global_data_A36772.heater_current_target) {
+                    global_data_A36772.analog_output_heater_voltage.set_point += HEATER_RAMP_UP_INCREMENT;
+                } else{
+                    global_data_A36772.set_current_reached = 1;
+                    global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_FINE_VOLT_INCREMENT;
+                }
+            }
+        } else {
+            if (global_data_A36772.heater_ramp_interval >= HEATER_RAMP_UP_TIME_PERIOD3) {
+                global_data_A36772.heater_ramp_interval = 0;
+                if (scaled_resistance < ResistanceLimit){//ResistanceLimit) {
+                    if(scaled_resistance < (ResistanceLimit-(ResistanceLimit*0.006))){
+                    global_data_A36772.analog_output_heater_voltage.set_point += HEATER_FINE_VOLT_INCREMENT;
+                    }else{
+                    global_data_A36772.analog_output_heater_voltage.set_point += HEATER_XTRAFINE_VOLT_INCREMENT;
+                    }
+                } else if (scaled_resistance > ResistanceLimit){//ResistanceLimit) {
+                    if(scaled_resistance > (ResistanceLimit+(ResistanceLimit*0.006))){
+                    global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_FINE_VOLT_INCREMENT;
+                    }else{
+                    global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_XTRAFINE_VOLT_INCREMENT;
                     }
                 }
             }
-        } else if (scaled_resistance >= 2000) {
-            // Ramp the heater voltage
-            global_data_A36772.heater_ramp_interval++;
-            if (!global_data_A36772.heater_operational) {
-                if (global_data_A36772.heater_ramp_interval >= HEATER_RAMP_UP_TIME_PERIOD) {
-                    global_data_A36772.heater_ramp_interval = 0;
-                    if (scaled_resistance < 2500) {
-                        global_data_A36772.analog_output_heater_voltage.set_point += HEATER_RAMP_UP_INCREMENT;
-                    } else {
-                        global_data_A36772.set_current_reached = 1;
-                        global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_FINE_VOLT_INCREMENT;
-                    }
-                }
-            } else {
-                if (global_data_A36772.heater_ramp_interval >= HEATER_RAMP_UP_TIME_PERIOD) {
-                    global_data_A36772.heater_ramp_interval = 0;
-                    if (scaled_resistance < 2500) {
-                        global_data_A36772.analog_output_heater_voltage.set_point += HEATER_FINE_VOLT_INCREMENT;
-                    } else if (scaled_resistance > 2500) {
-                        global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_FINE_VOLT_INCREMENT;
-                    }
-                }
-            }
+        }
         }
         /*     if (global_data_A36772.control_state == STATE_HEATER_RAMP_UP) {
               global_data_A36772.heater_voltage_current_limited = 0;
@@ -1439,9 +1459,10 @@ void DoA36772(void) {
             }
               }
             }
+  
             if (global_data_A36772.analog_output_heater_voltage.set_point > global_data_A36772.heater_voltage_target) {
               global_data_A36772.analog_output_heater_voltage.set_point = global_data_A36772.heater_voltage_target;
-            } */
+            }*/
 
         // update the DAC programs based on the new set points.
         ETMAnalogScaleCalibrateDACSetting(&global_data_A36772.analog_output_high_voltage);
