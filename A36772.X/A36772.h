@@ -392,7 +392,17 @@ typedef struct {
   AnalogInput  ref_ek;      // an13
   AnalogInput  pos_15v_mon; // an14
   AnalogInput  neg_15v_mon; // an15
-  AnalogInput  resistance;
+  
+  
+  //These are the variables needed for resistance calculation and limiting
+	double filament_resistance;
+	double heater_voltage_double;
+	double heater_current_double;
+
+	unsigned int scaled_filament_resistance;
+	unsigned int scaled_filament_resistance_for_display;
+	unsigned int resistance_warmup_delay;
+	unsigned int filament_resistance_limit;
   
 } TYPE_GLOBAL_DATA_A36772;
 
