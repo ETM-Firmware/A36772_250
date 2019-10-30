@@ -556,7 +556,7 @@ void InitializeA36772(void) {
 	global_data_A36772.scaled_filament_resistance = 0;
 	global_data_A36772.scaled_filament_resistance_for_display = 0;
 	global_data_A36772.resistance_warmup_delay = 0;
-	global_data_A36772.filament_resistance_limit = 3150;
+	//global_data_A36772.filament_resistance_limit = 3150;
 
 #ifdef __CAN_ENABLED
     // Initialize the Can module
@@ -1291,7 +1291,7 @@ void DoA36772(void) {
 		
 		
         
-        slave_board_data.log_data[0] = global_data_A36772.scaled_filament_resistance;//global_data_A36772.input_gun_i_peak.reading_scaled_and_calibrated;
+        slave_board_data.log_data[0] = global_data_A36772.input_gun_i_peak.reading_scaled_and_calibrated;
         slave_board_data.log_data[1] = global_data_A36772.input_hv_v_mon.reading_scaled_and_calibrated;
         slave_board_data.log_data[2] = global_data_A36772.input_top_v_mon.reading_scaled_and_calibrated; //gdoc says low energy
         slave_board_data.log_data[3] = global_data_A36772.input_top_v_mon.reading_scaled_and_calibrated; //gdoc says high energy
@@ -1306,7 +1306,7 @@ void DoA36772(void) {
         slave_board_data.log_data[12] = global_data_A36772.input_bias_v_mon.reading_scaled_and_calibrated;
         slave_board_data.log_data[13] = global_data_A36772.control_state;
         slave_board_data.log_data[14] = global_data_A36772.adc_read_error_count;
-        slave_board_data.log_data[15] = GUN_DRIVER_LOAD_TYPE;
+        slave_board_data.log_data[15] = global_data_A36772.scaled_filament_resistance;
         //    slave_board_data.log_data[15] = //FPGA ASDR 16bit reg
 
 
@@ -2490,7 +2490,7 @@ void ETMCanSlaveExecuteCMDBoardSpecific(ETMCanMessage* message_ptr) {
         case ETM_CAN_REGISTER_GUN_DRIVER_SET_1_HEATER_CATHODE_SET_POINT:
             global_data_A36772.can_high_voltage_set_point = message_ptr->word1;
             global_data_A36772.can_heater_current_set_point = message_ptr->word0;
-
+			global_data_A36772.filament_resistance_limit = message_ptr->word2;
             global_data_A36772.control_config |= 2;
             if (global_data_A36772.control_config == 3) {
                 _CONTROL_NOT_CONFIGURED = 0;
