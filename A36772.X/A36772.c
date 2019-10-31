@@ -1350,7 +1350,28 @@ void DoA36772(void) {
                 global_data_A36772.resistance_warmup_delay++;
             }
         }
-        
+        if(global_data_A36772.filament_regulation_mode == 0){
+			global_data_A36772.heater_ramp_interval++;
+        if (!global_data_A36772.heater_operational) {
+            if (global_data_A36772.heater_ramp_interval >= HEATER_RAMP_UP_TIME_PERIOD_SHORT) {
+                global_data_A36772.heater_ramp_interval = 0;
+                if (global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated < global_data_A36772.heater_current_target) {
+                    global_data_A36772.analog_output_heater_voltage.set_point += HEATER_RAMP_UP_INCREMENT;
+                } else{
+                    global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_FINE_VOLT_INCREMENT;
+                }
+            }
+        } else {
+            if (global_data_A36772.heater_ramp_interval >= HEATER_RAMP_UP_TIME_PERIOD_SHORT) {
+                global_data_A36772.heater_ramp_interval = 0;
+                if (global_data_A36772.scaled_filament_resistance < global_data_A36772.filament_resistance_limit) {
+                    global_data_A36772.analog_output_heater_voltage.set_point += HEATER_FINE_VOLT_INCREMENT;
+                } else if (global_data_A36772.scaled_filament_resistance > global_data_A36772.filament_resistance_limit) {
+                    global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_FINE_VOLT_INCREMENT;
+                }
+            }
+        }
+		}else{
 		//Current Limited
         if(global_data_A36772.resistance_warmup_delay <= 1500){
         // Ramp the heater voltage
@@ -1407,6 +1428,7 @@ void DoA36772(void) {
             }
         }
         }
+	}
         /* 	if (global_data_A36772.analog_output_heater_voltage.set_point > global_data_A36772.heater_voltage_target) {
               global_data_A36772.analog_output_heater_voltage.set_point = global_data_A36772.heater_voltage_target;
             }*/
@@ -2481,12 +2503,13 @@ void ETMCanSlaveExecuteCMDBoardSpecific(ETMCanMessage* message_ptr) {
         case ETM_CAN_REGISTER_GUN_DRIVER_SET_1_GRID_TOP_SET_POINT:
             global_data_A36772.can_pulse_top_high_set_point = message_ptr->word1;
             global_data_A36772.can_pulse_top_low_set_point = message_ptr->word0;
+			global_data_A36772.filament_regulation_mode = message_ptr->word2;
             global_data_A36772.control_config |= 1;
             if (global_data_A36772.control_config == 3) {
                 _CONTROL_NOT_CONFIGURED = 0;
             }
             break;
-            //
+            
         case ETM_CAN_REGISTER_GUN_DRIVER_SET_1_HEATER_CATHODE_SET_POINT:
             global_data_A36772.can_high_voltage_set_point = message_ptr->word1;
             global_data_A36772.can_heater_current_set_point = message_ptr->word0;

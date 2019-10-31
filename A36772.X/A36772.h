@@ -403,6 +403,7 @@ typedef struct {
 	unsigned int scaled_filament_resistance_for_display;
 	unsigned int resistance_warmup_delay;
 	unsigned int filament_resistance_limit;
+	unsigned int filament_regulation_mode;
   
 } TYPE_GLOBAL_DATA_A36772;
 
