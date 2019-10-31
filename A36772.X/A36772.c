@@ -547,16 +547,16 @@ void InitializeA36772(void) {
     _ADIP = 6; // This needs to be higher priority than the CAN interrupt (Which defaults to 4)
     _ADIE = 1;
     _ADON = 1;
-	
-	
-	//---------Configure Resistance Limit Variables---------//
-	global_data_A36772.filament_resistance = 0;
-	global_data_A36772.heater_voltage_double = 0;
-	global_data_A36772.heater_current_double = 0;
-	global_data_A36772.scaled_filament_resistance = 0;
-	global_data_A36772.scaled_filament_resistance_for_display = 0;
-	global_data_A36772.resistance_warmup_delay = 0;
-	//global_data_A36772.filament_resistance_limit = 3150;
+
+
+    //---------Configure Resistance Limit Variables---------//
+    global_data_A36772.filament_resistance = 0;
+    global_data_A36772.heater_voltage_double = 0;
+    global_data_A36772.heater_current_double = 0;
+    global_data_A36772.scaled_filament_resistance = 0;
+    global_data_A36772.scaled_filament_resistance_for_display = 0;
+    global_data_A36772.resistance_warmup_delay = 0;
+    //global_data_A36772.filament_resistance_limit = 3150;
 
 #ifdef __CAN_ENABLED
     // Initialize the Can module
@@ -1281,16 +1281,16 @@ void DoA36772(void) {
 
 
 
-		//Calculates the Resistance of the Heater Filament
-        global_data_A36772.heater_voltage_double = ((double) global_data_A36772.input_htr_v_mon.reading_scaled_and_calibrated);			//Converts heater voltage and current into type double for division.
+        //Calculates the Resistance of the Heater Filament
+        global_data_A36772.heater_voltage_double = ((double) global_data_A36772.input_htr_v_mon.reading_scaled_and_calibrated); //Converts heater voltage and current into type double for division.
         global_data_A36772.heater_current_double = ((double) global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated);
-        global_data_A36772.filament_resistance = global_data_A36772.heater_voltage_double / global_data_A36772.heater_current_double;	//Outputs filament resistance.
-        global_data_A36772.scaled_filament_resistance = (unsigned int) (global_data_A36772.filament_resistance * 1000); 				//Converts back to unsigned integer type and scales for significant figures (i.e. 1.456 -> 1456).
-        global_data_A36772.scaled_filament_resistance_for_display = (unsigned int) (global_data_A36772.filament_resistance * 10); 		//Converts back to unsigned integer type and scales for GUI feedback.
-		
-		
-		
-        
+        global_data_A36772.filament_resistance = global_data_A36772.heater_voltage_double / global_data_A36772.heater_current_double; //Outputs filament resistance.
+        global_data_A36772.scaled_filament_resistance = (unsigned int) (global_data_A36772.filament_resistance * 1000); //Converts back to unsigned integer type and scales for significant figures (i.e. 1.456 -> 1456).
+        global_data_A36772.scaled_filament_resistance_for_display = (unsigned int) (global_data_A36772.filament_resistance * 10); //Converts back to unsigned integer type and scales for GUI feedback.
+
+
+
+
         slave_board_data.log_data[0] = global_data_A36772.input_gun_i_peak.reading_scaled_and_calibrated;
         slave_board_data.log_data[1] = global_data_A36772.input_hv_v_mon.reading_scaled_and_calibrated;
         slave_board_data.log_data[2] = global_data_A36772.input_top_v_mon.reading_scaled_and_calibrated; //gdoc says low energy
@@ -1345,90 +1345,92 @@ void DoA36772(void) {
         }
 
         //delay for 15 seconds once heater current is at target before count down
-        if (global_data_A36772.resistance_warmup_delay <= 1500){
-            if(global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated >= global_data_A36772.heater_current_target){
+        if (global_data_A36772.resistance_warmup_delay <= 1500) {
+            if (global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated >= global_data_A36772.heater_current_target) {
                 global_data_A36772.resistance_warmup_delay++;
             }
         }
-        if(global_data_A36772.filament_regulation_mode == 0){
-			global_data_A36772.heater_ramp_interval++;
-        if (!global_data_A36772.heater_operational) {
-            if (global_data_A36772.heater_ramp_interval >= HEATER_RAMP_UP_TIME_PERIOD_SHORT) {
-                global_data_A36772.heater_ramp_interval = 0;
-                if (global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated < global_data_A36772.heater_current_target) {
-                    global_data_A36772.analog_output_heater_voltage.set_point += HEATER_RAMP_UP_INCREMENT;
-                } else{
-                    global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_FINE_VOLT_INCREMENT;
-                }
-            }
-        } else {
-            if (global_data_A36772.heater_ramp_interval >= HEATER_RAMP_UP_TIME_PERIOD_SHORT) {
-                global_data_A36772.heater_ramp_interval = 0;
-                if (global_data_A36772.scaled_filament_resistance < global_data_A36772.filament_resistance_limit) {
-                    global_data_A36772.analog_output_heater_voltage.set_point += HEATER_FINE_VOLT_INCREMENT;
-                } else if (global_data_A36772.scaled_filament_resistance > global_data_A36772.filament_resistance_limit) {
-                    global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_FINE_VOLT_INCREMENT;
-                }
-            }
-        }
-		}else{
-		//Current Limited
-        if(global_data_A36772.resistance_warmup_delay <= 1500){
-        // Ramp the heater voltage
-        global_data_A36772.heater_ramp_interval++;
-        if (!global_data_A36772.heater_operational) {
-            if (global_data_A36772.heater_ramp_interval >= HEATER_RAMP_UP_TIME_PERIOD_SHORT) {
-                global_data_A36772.heater_ramp_interval = 0;
-                if (global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated < global_data_A36772.heater_current_target) {
-                    global_data_A36772.analog_output_heater_voltage.set_point += HEATER_RAMP_UP_INCREMENT;
-                } else{
-                    global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_FINE_VOLT_INCREMENT;
-                }
-            }
-        } else {
-            if (global_data_A36772.heater_ramp_interval >= HEATER_RAMP_UP_TIME_PERIOD_SHORT) {
-                global_data_A36772.heater_ramp_interval = 0;
-                if (global_data_A36772.scaled_filament_resistance < global_data_A36772.filament_resistance_limit) {
-                    global_data_A36772.analog_output_heater_voltage.set_point += HEATER_FINE_VOLT_INCREMENT;
-                } else if (global_data_A36772.scaled_filament_resistance > global_data_A36772.filament_resistance_limit) {
-                    global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_FINE_VOLT_INCREMENT;
-                }
-            }
-        }
-		//Resistance Limited & Current Limited
-        }else{
-        global_data_A36772.heater_ramp_interval++;
-        if (!global_data_A36772.heater_operational) {
-            if (global_data_A36772.heater_ramp_interval >= HEATER_RAMP_UP_TIME_PERIOD) {
-                global_data_A36772.heater_ramp_interval = 0;
-                if (global_data_A36772.scaled_filament_resistance < global_data_A36772.filament_resistance_limit && global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated < global_data_A36772.heater_current_target) {
-                    global_data_A36772.analog_output_heater_voltage.set_point += HEATER_RAMP_UP_INCREMENT;
-                } else{
-                    global_data_A36772.set_current_reached = 1;	//warmup starts counting down
-                    global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_FINE_VOLT_INCREMENT;
-                }
-            }
-		//Resitance Limited Only
-        } else {
-            if (global_data_A36772.heater_ramp_interval >= HEATER_RAMP_UP_TIME_PERIOD_LONG) {
-                global_data_A36772.heater_ramp_interval = 0;
-                if (global_data_A36772.scaled_filament_resistance < global_data_A36772.filament_resistance_limit){
-                    if(global_data_A36772.scaled_filament_resistance < (global_data_A36772.filament_resistance_limit -(global_data_A36772.filament_resistance_limit*0.006))){ //If resistance is not within 0.6% of limit use fine increment
-                    global_data_A36772.analog_output_heater_voltage.set_point += HEATER_FINE_VOLT_INCREMENT;
-                    }else{																							//Else resistance is within 0.6% use extra fine increment
-                    global_data_A36772.analog_output_heater_voltage.set_point += HEATER_XTRAFINE_VOLT_INCREMENT;
+        if (global_data_A36772.filament_regulation_mode == 0) {
+            // Ramp the heater voltage
+            global_data_A36772.heater_ramp_interval++;
+            if (!global_data_A36772.heater_operational) {
+                if (global_data_A36772.heater_ramp_interval >= HEATER_RAMP_UP_TIME_PERIOD) {
+                    global_data_A36772.heater_ramp_interval = 0;
+                    if (global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated < global_data_A36772.heater_current_target) {
+                        global_data_A36772.analog_output_heater_voltage.set_point += HEATER_RAMP_UP_INCREMENT;
+                    } else {
+                        global_data_A36772.set_current_reached = 1;
+                        global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_FINE_VOLT_INCREMENT;
                     }
-                } else if (global_data_A36772.scaled_filament_resistance > global_data_A36772.filament_resistance_limit){
-                    if(global_data_A36772.scaled_filament_resistance > (global_data_A36772.filament_resistance_limit +(global_data_A36772.filament_resistance_limit*0.006))){ //If resistance is not within 0.6% of limit use fine increment
-                    global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_FINE_VOLT_INCREMENT;
-                    }else{																							//Else resistance is within 0.6% use extra fine increment
-                    global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_XTRAFINE_VOLT_INCREMENT;
+                }
+            } else {
+                if (global_data_A36772.heater_ramp_interval >= HEATER_RAMP_UP_TIME_PERIOD) {
+                    global_data_A36772.heater_ramp_interval = 0;
+                    if (global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated < global_data_A36772.heater_current_target) {
+                        global_data_A36772.analog_output_heater_voltage.set_point += HEATER_FINE_VOLT_INCREMENT;
+                    } else if (global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated > global_data_A36772.heater_current_target) {
+                        global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_FINE_VOLT_INCREMENT;
                     }
                 }
             }
+        } else {
+            //Current Limited
+            if (global_data_A36772.resistance_warmup_delay <= 1500) {
+                // Ramp the heater voltage
+                global_data_A36772.heater_ramp_interval++;
+                if (!global_data_A36772.heater_operational) {
+                    if (global_data_A36772.heater_ramp_interval >= HEATER_RAMP_UP_TIME_PERIOD_SHORT) {
+                        global_data_A36772.heater_ramp_interval = 0;
+                        if (global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated < global_data_A36772.heater_current_target) {
+                            global_data_A36772.analog_output_heater_voltage.set_point += HEATER_RAMP_UP_INCREMENT;
+                        } else {
+                            global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_FINE_VOLT_INCREMENT;
+                        }
+                    }
+                } else {
+                    if (global_data_A36772.heater_ramp_interval >= HEATER_RAMP_UP_TIME_PERIOD_SHORT) {
+                        global_data_A36772.heater_ramp_interval = 0;
+                        if (global_data_A36772.scaled_filament_resistance < global_data_A36772.filament_resistance_limit) {
+                            global_data_A36772.analog_output_heater_voltage.set_point += HEATER_FINE_VOLT_INCREMENT;
+                        } else if (global_data_A36772.scaled_filament_resistance > global_data_A36772.filament_resistance_limit) {
+                            global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_FINE_VOLT_INCREMENT;
+                        }
+                    }
+                }
+                //Resistance Limited & Current Limited
+            } else {
+                global_data_A36772.heater_ramp_interval++;
+                if (!global_data_A36772.heater_operational) {
+                    if (global_data_A36772.heater_ramp_interval >= HEATER_RAMP_UP_TIME_PERIOD) {
+                        global_data_A36772.heater_ramp_interval = 0;
+                        if (global_data_A36772.scaled_filament_resistance < global_data_A36772.filament_resistance_limit && global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated < global_data_A36772.heater_current_target) {
+                            global_data_A36772.analog_output_heater_voltage.set_point += HEATER_RAMP_UP_INCREMENT;
+                        } else {
+                            global_data_A36772.set_current_reached = 1; //warmup starts counting down
+                            global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_FINE_VOLT_INCREMENT;
+                        }
+                    }
+                    //Resitance Limited Only
+                } else {
+                    if (global_data_A36772.heater_ramp_interval >= HEATER_RAMP_UP_TIME_PERIOD_LONG) {
+                        global_data_A36772.heater_ramp_interval = 0;
+                        if (global_data_A36772.scaled_filament_resistance < global_data_A36772.filament_resistance_limit) {
+                            if (global_data_A36772.scaled_filament_resistance < (global_data_A36772.filament_resistance_limit - (global_data_A36772.filament_resistance_limit * 0.006))) { //If resistance is not within 0.6% of limit use fine increment
+                                global_data_A36772.analog_output_heater_voltage.set_point += HEATER_FINE_VOLT_INCREMENT;
+                            } else { //Else resistance is within 0.6% use extra fine increment
+                                global_data_A36772.analog_output_heater_voltage.set_point += HEATER_XTRAFINE_VOLT_INCREMENT;
+                            }
+                        } else if (global_data_A36772.scaled_filament_resistance > global_data_A36772.filament_resistance_limit) {
+                            if (global_data_A36772.scaled_filament_resistance > (global_data_A36772.filament_resistance_limit + (global_data_A36772.filament_resistance_limit * 0.006))) { //If resistance is not within 0.6% of limit use fine increment
+                                global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_FINE_VOLT_INCREMENT;
+                            } else { //Else resistance is within 0.6% use extra fine increment
+                                global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_XTRAFINE_VOLT_INCREMENT;
+                            }
+                        }
+                    }
+                }
+            }
         }
-        }
-	}
         /* 	if (global_data_A36772.analog_output_heater_voltage.set_point > global_data_A36772.heater_voltage_target) {
               global_data_A36772.analog_output_heater_voltage.set_point = global_data_A36772.heater_voltage_target;
             }*/
@@ -2503,17 +2505,17 @@ void ETMCanSlaveExecuteCMDBoardSpecific(ETMCanMessage* message_ptr) {
         case ETM_CAN_REGISTER_GUN_DRIVER_SET_1_GRID_TOP_SET_POINT:
             global_data_A36772.can_pulse_top_high_set_point = message_ptr->word1;
             global_data_A36772.can_pulse_top_low_set_point = message_ptr->word0;
-			global_data_A36772.filament_regulation_mode = message_ptr->word2;
+            global_data_A36772.filament_regulation_mode = message_ptr->word2;
             global_data_A36772.control_config |= 1;
             if (global_data_A36772.control_config == 3) {
                 _CONTROL_NOT_CONFIGURED = 0;
             }
             break;
-            
+
         case ETM_CAN_REGISTER_GUN_DRIVER_SET_1_HEATER_CATHODE_SET_POINT:
             global_data_A36772.can_high_voltage_set_point = message_ptr->word1;
             global_data_A36772.can_heater_current_set_point = message_ptr->word0;
-			global_data_A36772.filament_resistance_limit = message_ptr->word2;
+            global_data_A36772.filament_resistance_limit = message_ptr->word2;
             global_data_A36772.control_config |= 2;
             if (global_data_A36772.control_config == 3) {
                 _CONTROL_NOT_CONFIGURED = 0;
