@@ -140,7 +140,7 @@
 #define MAX_HEATER_START_UP_ATTEMPTS          5        // If the heater ramp up process does not succeed in this many attempts, a fault will be generated that requires power cycle
 #define MAX_DAC_TX_ATTEMPTS                   10       // The pic will attempt to write to the Converter Logic DAC this many times before giving up
 #define HEATER_RAMP_UP_INCREMENT              50       // mV Units.  When ramping up the heater voltage it is increased by this amount each HEATER_RAMP_UP_TIME_PERIOD
-#define HEATER_FINE_VOLT_INCREMENT            10       // mV Units.  When maintaining constant current, heater voltage adjusted by this much
+#define HEATER_FINE_VOLT_INCREMENT            20//10       // mV Units.  When maintaining constant current, heater voltage adjusted by this much
 #define HEATER_XTRAFINE_VOLT_INCREMENT        1
 
 
