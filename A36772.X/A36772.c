@@ -1344,14 +1344,15 @@ void DoA36772(void) {
             global_data_A36772.heater_current_target = MAX_PROGRAM_HTR_CURRENT;
         }
 
-        //delay for 15 seconds once heater current is at target before count down
+        //delay for 15 seconds once heater current is at target before count down (**resistance regulation mode only**)
         if (global_data_A36772.resistance_warmup_delay <= 1500) {
             if (global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated >= global_data_A36772.heater_current_target) {
                 global_data_A36772.resistance_warmup_delay++;
             }
         }
+		
+		//filament regulation mode = 0 regulate filament based on current
         if (global_data_A36772.filament_regulation_mode == 0) {
-            // Ramp the heater voltage
             global_data_A36772.heater_ramp_interval++;
             if (!global_data_A36772.heater_operational) {
                 if (global_data_A36772.heater_ramp_interval >= HEATER_RAMP_UP_TIME_PERIOD_SHORT) {
@@ -1374,9 +1375,8 @@ void DoA36772(void) {
                 }
             }
         } else {
-            //Current Limited
+        //filament regulation mode = 1 regulate filament based on resistance
             if (global_data_A36772.resistance_warmup_delay <= 1500) {
-                // Ramp the heater voltage
                 global_data_A36772.heater_ramp_interval++;
                 if (!global_data_A36772.heater_operational) {
                     if (global_data_A36772.heater_ramp_interval >= HEATER_RAMP_UP_TIME_PERIOD_SHORT) {
@@ -1397,8 +1397,8 @@ void DoA36772(void) {
                         }
                     }
                 }
-                //Resistance Limited & Current Limited
             } else {
+			//Resistance Limited & Current Limited
                 global_data_A36772.heater_ramp_interval++;
                 if (!global_data_A36772.heater_operational) {
                     if (global_data_A36772.heater_ramp_interval >= HEATER_RAMP_UP_TIME_PERIOD) {
@@ -1410,30 +1410,30 @@ void DoA36772(void) {
                             global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_FINE_VOLT_INCREMENT;
                         }
                     }
-                    //Resitance Limited Only
                 } else {
+				//Resitance Limited Only
                     if (global_data_A36772.heater_ramp_interval >= HEATER_RAMP_UP_TIME_PERIOD_LONG) {
                         global_data_A36772.heater_ramp_interval = 0;
                         if (global_data_A36772.scaled_filament_resistance < global_data_A36772.filament_resistance_limit) {
-                            if (global_data_A36772.scaled_filament_resistance < (global_data_A36772.filament_resistance_limit - 50)){//(global_data_A36772.filament_resistance_limit * 0.006))) { //If resistance is not within 0.6% of limit use fine increment
+                            if (global_data_A36772.scaled_filament_resistance < (global_data_A36772.filament_resistance_limit - 50)){
                                 global_data_A36772.analog_output_heater_voltage.set_point += HEATER_FINE_VOLT_INCREMENT;
-                            } else { //Else resistance is within 0.6% use extra fine increment
+                            } else { //Resistance is within 50 use extra fine increment
                                 global_data_A36772.analog_output_heater_voltage.set_point += HEATER_XTRAFINE_VOLT_INCREMENT;
                             }
                         } else if (global_data_A36772.scaled_filament_resistance > global_data_A36772.filament_resistance_limit) {
-                            if (global_data_A36772.scaled_filament_resistance > (global_data_A36772.filament_resistance_limit + 50)){// (global_data_A36772.filament_resistance_limit * 0.006))) { //If resistance is not within 0.6% of limit use fine increment
+                            if (global_data_A36772.scaled_filament_resistance > (global_data_A36772.filament_resistance_limit + 50)){
                                 global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_FINE_VOLT_INCREMENT;
-                            } else { //Else resistance is within 0.6% use extra fine increment
+                            } else { //Resistance is within 50 use extra fine increment
                                 global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_XTRAFINE_VOLT_INCREMENT;
                             }
                         }
+						if(global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated > 1650){//HARD LIMIT ON HEATER CURRENT IN CASE OF SPIKED VOLTAGE
+						   global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_FINE_VOLT_INCREMENT;
+						}
                     }
                 }
             }
         }
-        /* 	if (global_data_A36772.analog_output_heater_voltage.set_point > global_data_A36772.heater_voltage_target) {
-              global_data_A36772.analog_output_heater_voltage.set_point = global_data_A36772.heater_voltage_target;
-            }*/
 
         // update the DAC programs based on the new set points.
         ETMAnalogScaleCalibrateDACSetting(&global_data_A36772.analog_output_high_voltage);
