@@ -130,7 +130,7 @@
 #define HEATER_AUTO_RESTART_TIME               500      	// Time delay between a heater fault and when the heater gets restarted
 #define HEATER_RAMP_UP_TIME_PERIOD             50  //5      // Durring heater ramp up, the heater voltage will be increased every N 10ms (see HEATER_RAMP_UP_INCREMENT)
 #define HEATER_RAMP_UP_TIME_PERIOD_SHORT       5  //10    
-#define HEATER_RAMP_UP_TIME_PERIOD_LONG  	   200 //5
+#define HEATER_RAMP_UP_TIME_PERIOD_LONG  	   100 //200
 #define GUN_DRIVER_POWER_SUPPLY_STARTUP_TIME   100      	// Wait this long between enabling High Voltage / Pulse Top / Bias and cheching that they are at correct values
 #define MAX_INITIAL_RAMP_TIME                  6000     	// Timeout initial ramp if operational current never reached
 

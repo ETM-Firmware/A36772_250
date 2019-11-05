@@ -1305,7 +1305,7 @@ void DoA36772(void) {
         slave_board_data.log_data[11] = global_data_A36772.analog_output_top_voltage.set_point; //gdoc says high energy
         slave_board_data.log_data[12] = global_data_A36772.input_bias_v_mon.reading_scaled_and_calibrated;
         slave_board_data.log_data[13] = global_data_A36772.control_state;
-        slave_board_data.log_data[14] = global_data_A36772.filament_regulation_mode;//global_data_A36772.adc_read_error_count;
+        slave_board_data.log_data[14] = global_data_A36772.filament_regulation_mode; //global_data_A36772.adc_read_error_count;
         slave_board_data.log_data[15] = global_data_A36772.scaled_filament_resistance;
         //    slave_board_data.log_data[15] = //FPGA ASDR 16bit reg
 
@@ -1350,8 +1350,8 @@ void DoA36772(void) {
                 global_data_A36772.resistance_warmup_delay++;
             }
         }
-		
-		//filament regulation mode = 0 regulate filament based on current
+
+        //filament regulation mode = 0 regulate filament based on current
         if (global_data_A36772.filament_regulation_mode == 0) {
             global_data_A36772.heater_ramp_interval++;
             if (!global_data_A36772.heater_operational) {
@@ -1375,7 +1375,7 @@ void DoA36772(void) {
                 }
             }
         } else {
-        //filament regulation mode = 1 regulate filament based on resistance
+            //filament regulation mode = 1 regulate filament based on resistance
             if (global_data_A36772.resistance_warmup_delay <= 1500) {
                 global_data_A36772.heater_ramp_interval++;
                 if (!global_data_A36772.heater_operational) {
@@ -1398,7 +1398,7 @@ void DoA36772(void) {
                     }
                 }
             } else {
-			//Resistance Limited & Current Limited
+                //Resistance Limited & Current Limited
                 global_data_A36772.heater_ramp_interval++;
                 if (!global_data_A36772.heater_operational) {
                     if (global_data_A36772.heater_ramp_interval >= HEATER_RAMP_UP_TIME_PERIOD) {
@@ -1411,25 +1411,27 @@ void DoA36772(void) {
                         }
                     }
                 } else {
-				//Resitance Limited Only
+                    //Resitance Limited Only
                     if (global_data_A36772.heater_ramp_interval >= HEATER_RAMP_UP_TIME_PERIOD_LONG) {
                         global_data_A36772.heater_ramp_interval = 0;
                         if (global_data_A36772.scaled_filament_resistance < global_data_A36772.filament_resistance_limit) {
-                            if (global_data_A36772.scaled_filament_resistance < (global_data_A36772.filament_resistance_limit - 50)){
+                            if (global_data_A36772.scaled_filament_resistance < (global_data_A36772.filament_resistance_limit - 50)) {
                                 global_data_A36772.analog_output_heater_voltage.set_point += HEATER_FINE_VOLT_INCREMENT;
                             } else { //Resistance is within 50 use extra fine increment
                                 global_data_A36772.analog_output_heater_voltage.set_point += HEATER_XTRAFINE_VOLT_INCREMENT;
                             }
                         } else if (global_data_A36772.scaled_filament_resistance > global_data_A36772.filament_resistance_limit) {
-                            if (global_data_A36772.scaled_filament_resistance > (global_data_A36772.filament_resistance_limit + 50)){
+                            if (global_data_A36772.scaled_filament_resistance > (global_data_A36772.filament_resistance_limit + 50)) {
                                 global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_FINE_VOLT_INCREMENT;
                             } else { //Resistance is within 50 use extra fine increment
                                 global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_XTRAFINE_VOLT_INCREMENT;
                             }
+                        } else {
+                            global_data_A36772.analog_output_heater_voltage.set_point = global_data_A36772.analog_output_heater_voltage.set_point;
                         }
-						if(global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated > 1650){//HARD LIMIT ON HEATER CURRENT IN CASE OF SPIKED VOLTAGE
-						   global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_FINE_VOLT_INCREMENT;
-						}
+                        if (global_data_A36772.input_htr_i_mon.reading_scaled_and_calibrated > 1650) {//HARD LIMIT ON HEATER CURRENT IN CASE OF SPIKED VOLTAGE
+                            global_data_A36772.analog_output_heater_voltage.set_point -= (HEATER_FINE_VOLT_INCREMENT + 10);
+                        }
                     }
                 }
             }
