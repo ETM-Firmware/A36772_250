@@ -141,7 +141,8 @@
 #define MAX_DAC_TX_ATTEMPTS                   10       // The pic will attempt to write to the Converter Logic DAC this many times before giving up
 #define HEATER_RAMP_UP_INCREMENT              50       // mV Units.  When ramping up the heater voltage it is increased by this amount each HEATER_RAMP_UP_TIME_PERIOD
 #define HEATER_FINE_VOLT_INCREMENT            20//10       // mV Units.  When maintaining constant current, heater voltage adjusted by this much
-#define HEATER_XTRAFINE_VOLT_INCREMENT        1
+#define HEATER_XTRAFINE_VOLT_INCREMENT        2//1
+#define HEATER_ULTRAFINE_VOLT_INCREMENT       1
 
 
 //#define HEATER_VOLTAGE_CURRENT_LIMITED_FAULT_TIME (500 / HEATER_RAMP_UP_TIME_PERIOD)  // 5 Seconds

@@ -1418,13 +1418,21 @@ void DoA36772(void) {
                             if (global_data_A36772.scaled_filament_resistance < (global_data_A36772.filament_resistance_limit - 50)) {
                                 global_data_A36772.analog_output_heater_voltage.set_point += HEATER_FINE_VOLT_INCREMENT;
                             } else { //Resistance is within 50 use extra fine increment
-                                global_data_A36772.analog_output_heater_voltage.set_point += HEATER_XTRAFINE_VOLT_INCREMENT;
+                                if (global_data_A36772.scaled_filament_resistance < (global_data_A36772.filament_resistance_limit - 10)) {
+                                    global_data_A36772.analog_output_heater_voltage.set_point += HEATER_XTRAFINE_VOLT_INCREMENT;
+                                } else {
+                                    global_data_A36772.analog_output_heater_voltage.set_point += HEATER_ULTRAFINE_VOLT_INCREMENT;
+                                }
                             }
                         } else if (global_data_A36772.scaled_filament_resistance > global_data_A36772.filament_resistance_limit) {
                             if (global_data_A36772.scaled_filament_resistance > (global_data_A36772.filament_resistance_limit + 50)) {
                                 global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_FINE_VOLT_INCREMENT;
                             } else { //Resistance is within 50 use extra fine increment
-                                global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_XTRAFINE_VOLT_INCREMENT;
+                                if (global_data_A36772.scaled_filament_resistance > (global_data_A36772.filament_resistance_limit + 10)) {
+                                    global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_XTRAFINE_VOLT_INCREMENT;
+                                } else {
+                                    global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_ULTRAFINE_VOLT_INCREMENT;
+                                }
                             }
                         } else {
                             global_data_A36772.analog_output_heater_voltage.set_point = global_data_A36772.analog_output_heater_voltage.set_point;
