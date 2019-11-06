@@ -1415,7 +1415,7 @@ void DoA36772(void) {
                     if (global_data_A36772.heater_ramp_interval >= HEATER_RAMP_UP_TIME_PERIOD_LONG) {
                         global_data_A36772.heater_ramp_interval = 0;
                         if (global_data_A36772.scaled_filament_resistance < global_data_A36772.filament_resistance_limit) {
-                            if (global_data_A36772.scaled_filament_resistance < (global_data_A36772.filament_resistance_limit - 50)) {
+                            if (global_data_A36772.scaled_filament_resistance < (global_data_A36772.filament_resistance_limit - 100)) {
                                 global_data_A36772.analog_output_heater_voltage.set_point += HEATER_FINE_VOLT_INCREMENT;
                             } else { //Resistance is within 50 use extra fine increment
                                 if (global_data_A36772.scaled_filament_resistance < (global_data_A36772.filament_resistance_limit - 10)) {
@@ -1425,7 +1425,7 @@ void DoA36772(void) {
                                 }
                             }
                         } else if (global_data_A36772.scaled_filament_resistance > global_data_A36772.filament_resistance_limit) {
-                            if (global_data_A36772.scaled_filament_resistance > (global_data_A36772.filament_resistance_limit + 50)) {
+                            if (global_data_A36772.scaled_filament_resistance > (global_data_A36772.filament_resistance_limit + 100)) {
                                 global_data_A36772.analog_output_heater_voltage.set_point -= HEATER_FINE_VOLT_INCREMENT;
                             } else { //Resistance is within 50 use extra fine increment
                                 if (global_data_A36772.scaled_filament_resistance > (global_data_A36772.filament_resistance_limit + 10)) {
@@ -2526,11 +2526,11 @@ void ETMCanSlaveExecuteCMDBoardSpecific(ETMCanMessage* message_ptr) {
             global_data_A36772.can_high_voltage_set_point = message_ptr->word1;
             global_data_A36772.can_heater_current_set_point = message_ptr->word0;
             global_data_A36772.filament_resistance_limit = message_ptr->word2;
-			if(global_data_A36772.filament_resistance_limit > 4500){
-				global_data_A36772.filament_resistance_limit = 4500;
+			if(global_data_A36772.filament_resistance_limit > MAX_RESISTANCE_SET_POINT){
+				global_data_A36772.filament_resistance_limit = MAX_RESISTANCE_SET_POINT;
 			}
-			if(global_data_A36772.filament_resistance_limit < 2000){
-				global_data_A36772.filament_resistance_limit = 2000;
+			if(global_data_A36772.filament_resistance_limit < MIN_RESISTANCE_SET_POINT){
+				global_data_A36772.filament_resistance_limit = MIN_RESISTANCE_SET_POINT;
 			}
             global_data_A36772.control_config |= 2;
             if (global_data_A36772.control_config == 3) {
