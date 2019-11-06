@@ -400,7 +400,6 @@ typedef struct {
 	double heater_current_double;
 
 	unsigned int scaled_filament_resistance;
-	unsigned int scaled_filament_resistance_for_display;
 	unsigned int resistance_warmup_delay;
 	unsigned int filament_resistance_limit;
 	unsigned int filament_regulation_mode;
