@@ -1347,7 +1347,7 @@ void DoA36772(void) {
         }
 
         //filament regulation mode = 0 regulate filament based on current
-        if (global_data_A36772.filament_regulation_mode == 0) {
+        if (global_data_A36772.filament_regulation_mode == 0 || global_data_A36772.filament_regulation_mode != 1) {//IF NOTHING IS SET IT WILL DEFAULT TO CURRENT REGULATION
             global_data_A36772.heater_ramp_interval++;
             if (!global_data_A36772.heater_operational) {
                 if (global_data_A36772.heater_ramp_interval >= HEATER_RAMP_UP_TIME_PERIOD_SHORT) {
@@ -2510,9 +2510,6 @@ void ETMCanSlaveExecuteCMDBoardSpecific(ETMCanMessage* message_ptr) {
             global_data_A36772.can_pulse_top_high_set_point = message_ptr->word1;
             global_data_A36772.can_pulse_top_low_set_point = message_ptr->word0;
             global_data_A36772.filament_regulation_mode = message_ptr->word2;
-			if(global_data_A36772.filament_regulation_mode != 0 && global_data_A36772.filament_regulation_mode != 1){
-				global_data_A36772.filament_regulation_mode = 0;
-			}
             global_data_A36772.control_config |= 1;
             if (global_data_A36772.control_config == 3) {
                 _CONTROL_NOT_CONFIGURED = 0;
