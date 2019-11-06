@@ -2518,6 +2518,12 @@ void ETMCanSlaveExecuteCMDBoardSpecific(ETMCanMessage* message_ptr) {
             global_data_A36772.can_high_voltage_set_point = message_ptr->word1;
             global_data_A36772.can_heater_current_set_point = message_ptr->word0;
             global_data_A36772.filament_resistance_limit = message_ptr->word2;
+			if(global_data_A36772.filament_resistance_limit > 4500){
+				global_data_A36772.filament_resistance_limit = 4500;
+			}
+			if(global_data_A36772.filament_resistance_limit < 2000){
+				global_data_A36772.filament_resistance_limit = 2000;
+			}
             global_data_A36772.control_config |= 2;
             if (global_data_A36772.control_config == 3) {
                 _CONTROL_NOT_CONFIGURED = 0;
