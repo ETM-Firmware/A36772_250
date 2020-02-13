@@ -766,7 +766,7 @@ void InitializeA36772(void) {
   ETMAnalogInitializeOutput(&global_data_A36772.analog_output_high_voltage,
 			    MACRO_DEC_TO_SCALE_FACTOR_16(DAC_HIGH_VOLTAGE_FIXED_SCALE),
 			    DAC_HIGH_VOLTAGE_FIXED_OFFSET,
-			    ANALOG_INPUT_NO_CALIBRATION,
+			    ANALOG_OUTPUT_NO_CALIBRATION,
 			    HIGH_VOLTAGE_MAX_SET_POINT,
 			    HIGH_VOLTAGE_MIN_SET_POINT,
 			    0);
@@ -774,7 +774,7 @@ void InitializeA36772(void) {
   ETMAnalogInitializeOutput(&global_data_A36772.analog_output_top_voltage,
 			    MACRO_DEC_TO_SCALE_FACTOR_16(DAC_TOP_VOLTAGE_FIXED_SCALE),
 			    DAC_TOP_VOLTAGE_FIXED_OFFSET,
-			    ANALOG_INPUT_NO_CALIBRATION,
+			    ANALOG_OUTPUT_NO_CALIBRATION,
 			    TOP_VOLTAGE_MAX_SET_POINT,
 			    TOP_VOLTAGE_MIN_SET_POINT,
 			    0);
@@ -782,7 +782,7 @@ void InitializeA36772(void) {
   ETMAnalogInitializeOutput(&global_data_A36772.analog_output_heater_voltage,
 			    MACRO_DEC_TO_SCALE_FACTOR_16(DAC_HEATER_VOLTAGE_FIXED_SCALE),
 			    DAC_HEATER_VOLTAGE_FIXED_OFFSET,
-			    ANALOG_INPUT_NO_CALIBRATION,
+			    ANALOG_OUTPUT_NO_CALIBRATION,
 			    HEATER_VOLTAGE_MAX_SET_POINT,
 			    HEATER_VOLTAGE_MIN_SET_POINT,
 			    0);
@@ -792,7 +792,7 @@ void InitializeA36772(void) {
   ETMAnalogInitializeOutput(&global_data_A36772.monitor_heater_voltage,
 			    MACRO_DEC_TO_SCALE_FACTOR_16(DAC_MONITOR_HEATER_VOLTAGE_FIXED_SCALE),
 			    DAC_MONITOR_HEATER_VOLTAGE_FIXED_OFFSET,
-			    ANALOG_INPUT_NO_CALIBRATION,
+			    ANALOG_OUTPUT_NO_CALIBRATION,
 			    0xFFFF,
 			    0,
 			    0);
@@ -800,7 +800,7 @@ void InitializeA36772(void) {
   ETMAnalogInitializeOutput(&global_data_A36772.monitor_heater_current,
 			    MACRO_DEC_TO_SCALE_FACTOR_16(DAC_MONITOR_HEATER_CURRENT_FIXED_SCALE),
 			    DAC_MONITOR_HEATER_CURRENT_FIXED_OFFSET,
-			    ANALOG_INPUT_NO_CALIBRATION,
+			    ANALOG_OUTPUT_NO_CALIBRATION,
 			    0xFFFF,
 			    0,
 			    0);
@@ -808,7 +808,7 @@ void InitializeA36772(void) {
   ETMAnalogInitializeOutput(&global_data_A36772.monitor_cathode_voltage,
 			    MACRO_DEC_TO_SCALE_FACTOR_16(DAC_MONITOR_CATHODE_VOLTAGE_FIXED_SCALE),
 			    DAC_MONITOR_CATHODE_VOLTAGE_FIXED_OFFSET,
-			    ANALOG_INPUT_NO_CALIBRATION,
+			    ANALOG_OUTPUT_NO_CALIBRATION,
 			    0xFFFF,
 			    0,
 			    0);
@@ -816,7 +816,7 @@ void InitializeA36772(void) {
   ETMAnalogInitializeOutput(&global_data_A36772.monitor_grid_voltage,
 			    MACRO_DEC_TO_SCALE_FACTOR_16(DAC_MONITOR_GRID_VOLTAGE_FIXED_SCALE),
 			    DAC_MONITOR_GRID_VOLTAGE_FIXED_OFFSET,
-			    ANALOG_INPUT_NO_CALIBRATION,
+			    ANALOG_OUTPUT_NO_CALIBRATION,
 			    0xFFFF,
 			    0,
 			    0);
