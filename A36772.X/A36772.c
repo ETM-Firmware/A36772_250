@@ -2078,10 +2078,10 @@ void DACWriteChannel(unsigned int command_word, unsigned int data_word) {
     PIN_CS_DAC = OLL_PIN_CS_DAC_SELECTED;
     __delay32(DELAY_FPGA_CABLE_DELAY);
 
-    spi_char = (LTC265X_CMD_NO_OPERATION >> 8) & 0x00FF;
+    spi_char = (LTC265X_CMD_SELECT_INTERNAL_REFERENCE >> 8) & 0x00FF;
     command_word_check   = SPICharInvertered(spi_char);
     command_word_check <<= 8;
-    spi_char = LTC265X_CMD_NO_OPERATION & 0x00FF; 
+    spi_char = LTC265X_CMD_SELECT_INTERNAL_REFERENCE & 0x00FF; 
     command_word_check  += SPICharInvertered(spi_char);
     
     spi_char = 0;
