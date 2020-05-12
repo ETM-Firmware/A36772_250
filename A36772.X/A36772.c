@@ -612,10 +612,10 @@ void InitializeA36772(void) {
 			   ADC_HTR_V_MON_FIXED_OFFSET,
 			   ANALOG_INPUT_NO_CALIBRATION,
 			   ADC_HTR_V_MON_OVER_LIMIT_ABSOLUTE,
-			   ADC_HTR_V_MON_UNDER_LIMIT_ABSOLUTE,
-			   NO_TRIP_SCALE,
-			   NO_FLOOR,
-			   NO_RELATIVE_COUNTER,
+			   NO_UNDER_TRIP,
+			   ADC_HTR_V_MON_RELATIVE_TRIP_SCALE,
+			   ADC_HTR_V_MON_RELATIVE_TRIP_FLOOR,
+			   ADC_HTR_V_MON_RELATIVE_TRIP_TIME,
 			   ADC_HTR_V_MON_ABSOLUTE_TRIP_TIME);
 
   ETMAnalogInitializeInput(&global_data_A36772.input_htr_i_mon,
@@ -624,9 +624,9 @@ void InitializeA36772(void) {
 			   ANALOG_INPUT_NO_CALIBRATION,
 			   ADC_HTR_I_MON_OVER_LIMIT_ABSOLUTE,
 			   NO_UNDER_TRIP,
-			   NO_TRIP_SCALE,
-			   NO_FLOOR,
-			   NO_RELATIVE_COUNTER,
+			   ADC_HTR_I_MON_RELATIVE_TRIP_SCALE,
+			   ADC_HTR_I_MON_RELATIVE_TRIP_FLOOR,
+			   ADC_HTR_I_MON_RELATIVE_TRIP_TIME,
 			   ADC_HTR_I_MON_ABSOLUTE_TRIP_TIME);
 
   ETMAnalogInitializeInput(&global_data_A36772.input_top_v_mon,
@@ -869,8 +869,9 @@ void ResetAllFaultInfo(void) {
   _FAULT_ADC_HV_V_MON_OVER_RELATIVE = 0;
   _FAULT_ADC_HV_V_MON_UNDER_RELATIVE = 0;
   _FAULT_ADC_HTR_V_MON_OVER_ABSOLUTE = 0;
-  _FAULT_ADC_HTR_V_MON_UNDER_ABSOLUTE = 0;
-  _FAULT_ADC_HTR_I_MON_OVER_ABSOLUTE = 0;
+  _FAULT_ADC_HTR_V_MON_UNDER_RELATIVE = 0;
+  _FAULT_ADC_HTR_I_MON_OVER_RELATIVE = 0;
+  _FAULT_ADC_HTR_I_MON_UNDER_RELATIVE = 0;
   _FAULT_ADC_TOP_V_MON_OVER_RELATIVE = 0;
   _FAULT_ADC_TOP_V_MON_UNDER_RELATIVE = 0;
   _FAULT_ADC_BIAS_V_MON_OVER_ABSOLUTE = 0;
@@ -974,15 +975,15 @@ void ResetAllFaultInfo(void) {
 
 unsigned int CheckRampingHeaterFault(void) {
   unsigned int fault = 0;
-  fault  = _FAULT_FPGA_FIRMWARE_MAJOR_REV_MISMATCH;
-  fault |= _FAULT_ADC_HTR_V_MON_OVER_ABSOLUTE;
-  fault |= _FAULT_ADC_HTR_I_MON_OVER_ABSOLUTE;
-  fault |= _FAULT_ADC_DIGITAL_OVER_TEMP;
+  fault  = _FAULT_ADC_HTR_V_MON_OVER_ABSOLUTE;
+  fault |= _FAULT_ADC_HTR_I_MON_OVER_RELATIVE;
   fault |= _FAULT_ADC_DIGITAL_GRID;
+  fault |= _FPGA_GRID_MODULE_HARDWARE_FAULT;
+  fault |= _FPGA_GRID_MODULE_OVER_VOLTAGE_FAULT;
+  fault |= _FPGA_GRID_MODULE_UNDER_VOLTAGE_FAULT;
   fault |= _FAULT_CONVERTER_LOGIC_ADC_READ_FAILURE;
   fault |= _FAULT_ADC_BIAS_V_MON_OVER_ABSOLUTE;
   fault |= _FAULT_ADC_BIAS_V_MON_UNDER_ABSOLUTE;
-//  fault |= _FAULT_SPI_COMMUNICATION;
   fault |= _STATUS_SPI_COM_FAULTED;
   fault |= _FAULT_CAN_COMMUNICATION;
   if (fault) {
@@ -994,16 +995,15 @@ unsigned int CheckRampingHeaterFault(void) {
 
 unsigned int CheckHeaterFault(void) {
   unsigned int fault = 0;
-  fault  = _FAULT_FPGA_FIRMWARE_MAJOR_REV_MISMATCH;
-  fault |= _FAULT_ADC_HTR_V_MON_OVER_ABSOLUTE;
-  fault |= _FAULT_ADC_HTR_V_MON_UNDER_ABSOLUTE;
-  fault |= _FAULT_ADC_HTR_I_MON_OVER_ABSOLUTE;
-  fault |= _FAULT_ADC_DIGITAL_OVER_TEMP;
+  fault  = _FAULT_ADC_HTR_V_MON_OVER_ABSOLUTE;
+  fault |= _FAULT_ADC_HTR_I_MON_OVER_RELATIVE;
   fault |= _FAULT_ADC_DIGITAL_GRID;
+  fault |= _FPGA_GRID_MODULE_HARDWARE_FAULT;
+  fault |= _FPGA_GRID_MODULE_OVER_VOLTAGE_FAULT;
+  fault |= _FPGA_GRID_MODULE_UNDER_VOLTAGE_FAULT;
   fault |= _FAULT_CONVERTER_LOGIC_ADC_READ_FAILURE;
   fault |= _FAULT_ADC_BIAS_V_MON_OVER_ABSOLUTE;
   fault |= _FAULT_ADC_BIAS_V_MON_UNDER_ABSOLUTE;
-//  fault |= _FAULT_SPI_COMMUNICATION;
   fault |= _FAULT_CAN_COMMUNICATION;
   if (fault) {
     return 1;
@@ -1015,7 +1015,13 @@ unsigned int CheckHeaterFault(void) {
 
 unsigned int CheckFault(void) {
   unsigned int fault = 0;
-  fault  = _FAULT_ADC_HV_V_MON_OVER_RELATIVE;
+  fault  = _FAULT_FPGA_FIRMWARE_MAJOR_REV_MISMATCH;
+  fault |= _FAULT_ADC_DIGITAL_OVER_TEMP;
+  fault |= _FPGA_MODULE_TEMP_GREATER_THAN_65_C;
+  fault |= _FPGA_MODULE_TEMP_GREATER_THAN_75_C;
+  fault |= _FAULT_ADC_HTR_V_MON_UNDER_RELATIVE;
+  fault |= _FAULT_ADC_HTR_I_MON_UNDER_RELATIVE;
+  fault |= _FAULT_ADC_HV_V_MON_OVER_RELATIVE;
   fault |= _FAULT_ADC_HV_V_MON_UNDER_RELATIVE;
   fault |= _FAULT_ADC_TOP_V_MON_OVER_RELATIVE;
   fault |= _FAULT_ADC_TOP_V_MON_UNDER_RELATIVE;
@@ -1030,7 +1036,13 @@ unsigned int CheckFault(void) {
 
 unsigned int CheckPreTopFault(void) {
   unsigned int fault = 0;
-  fault  = _FAULT_ADC_HV_V_MON_OVER_RELATIVE;
+  fault  = _FAULT_FPGA_FIRMWARE_MAJOR_REV_MISMATCH;
+  fault |= _FAULT_ADC_DIGITAL_OVER_TEMP;
+  fault |= _FPGA_MODULE_TEMP_GREATER_THAN_65_C;
+  fault |= _FPGA_MODULE_TEMP_GREATER_THAN_75_C;
+  fault |= _FAULT_ADC_HTR_V_MON_UNDER_RELATIVE;
+  fault |= _FAULT_ADC_HTR_I_MON_UNDER_RELATIVE;
+  fault |= _FAULT_ADC_HV_V_MON_OVER_RELATIVE;
   fault |= _FAULT_ADC_HV_V_MON_UNDER_RELATIVE;
   fault |= _FAULT_ADC_DIGITAL_ARC;
   if (fault) {
@@ -1044,7 +1056,13 @@ unsigned int CheckPreTopFault(void) {
 
 unsigned int CheckPreHVFault(void) {
   unsigned int fault = 0;
-  fault  = _FAULT_ADC_HV_V_MON_OVER_RELATIVE;
+  fault  = _FAULT_FPGA_FIRMWARE_MAJOR_REV_MISMATCH;
+  fault |= _FAULT_ADC_DIGITAL_OVER_TEMP;
+  fault |= _FPGA_MODULE_TEMP_GREATER_THAN_65_C;
+  fault |= _FPGA_MODULE_TEMP_GREATER_THAN_75_C;
+  fault |= _FAULT_ADC_HTR_V_MON_UNDER_RELATIVE;
+  fault |= _FAULT_ADC_HTR_I_MON_UNDER_RELATIVE;
+  fault |= _FAULT_ADC_HV_V_MON_OVER_RELATIVE;
   fault |= _FAULT_ADC_DIGITAL_ARC;
   if (fault) {
     return 1;
@@ -1546,6 +1564,7 @@ void UpdateFaults(void) {
     global_data_A36772.input_htr_v_mon.target_value = global_data_A36772.analog_output_heater_voltage.set_point;
     global_data_A36772.input_hv_v_mon.target_value = global_data_A36772.analog_output_high_voltage.set_point;
     global_data_A36772.input_top_v_mon.target_value = global_data_A36772.analog_output_top_voltage.set_point;
+	global_data_A36772.input_htr_i_mon.target_value = global_data_A36772.can_heater_current_set_point;
 
 /*     // If the set point is less that 1.5 V clear the under current counter
     if (global_data_A36772.analog_output_heater_voltage.set_point < 1500) {
@@ -1554,9 +1573,21 @@ void UpdateFaults(void) {
  */ 
     
     if (ETMAnalogCheckOverAbsolute(&global_data_A36772.input_htr_i_mon)) {  
-      _FAULT_ADC_HTR_I_MON_OVER_ABSOLUTE = 1;
+      _FAULT_ADC_HTR_I_MON_OVER_RELATIVE = 1;
     } else if (global_data_A36772.reset_active) {
-      _FAULT_ADC_HTR_I_MON_OVER_ABSOLUTE = 0;
+      _FAULT_ADC_HTR_I_MON_OVER_RELATIVE = 0;
+    }
+	
+	if (ETMAnalogCheckOverRelative(&global_data_A36772.input_htr_i_mon)) {  
+      _FAULT_ADC_HTR_I_MON_OVER_RELATIVE = 1;
+    } else if (global_data_A36772.reset_active) {
+      _FAULT_ADC_HTR_I_MON_OVER_RELATIVE = 0;
+    }
+	
+	if (ETMAnalogCheckUnderRelative(&global_data_A36772.input_htr_i_mon)) {  
+      _FAULT_ADC_HTR_I_MON_UNDER_RELATIVE = 1;
+    } else if (global_data_A36772.reset_active) {
+      _FAULT_ADC_HTR_I_MON_UNDER_RELATIVE = 0;
     }
     
     if (ETMAnalogCheckOverAbsolute(&global_data_A36772.input_htr_v_mon)) {
@@ -1566,11 +1597,11 @@ void UpdateFaults(void) {
     }
     
     if (global_data_A36772.control_state >= STATE_HEATER_WARM_UP_DONE) {    
-      if (ETMAnalogCheckUnderAbsolute(&global_data_A36772.input_htr_v_mon)) {  
-        _FAULT_ADC_HTR_V_MON_UNDER_ABSOLUTE = 1;                             
+      if (ETMAnalogCheckUnderRelative(&global_data_A36772.input_htr_v_mon)) {  
+        _FAULT_ADC_HTR_V_MON_UNDER_RELATIVE = 1;                             
       }
     } else if (global_data_A36772.reset_active) {
-      _FAULT_ADC_HTR_V_MON_UNDER_ABSOLUTE = 0;  
+      _FAULT_ADC_HTR_V_MON_UNDER_RELATIVE = 0;  
     }      
 
     if (global_data_A36772.control_state >= STATE_POWER_SUPPLY_RAMP_UP) {

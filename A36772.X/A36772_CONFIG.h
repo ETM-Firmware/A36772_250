@@ -97,7 +97,7 @@
 #define MAX_PROGRAM_HTR_CURRENT          1600           // 1.6 Amps
 #define MAX_RAMP_HTR_I                   1650           // 1.650 Amps
 #define HTR_OC_ABS                       1750           // 1.750 Amps
-#define HTR_OV_ABS                       6250           // 6.25V
+#define HTR_OV_ABS                       5500//6250     // 5.5V (was 6.25V)
 #define GUN_DRIVER_LOAD_TYPE             0
 #endif
 
@@ -166,8 +166,8 @@
 #define ADC_HV_VMON_FIXED_SCALE               .34722
 #define ADC_HV_VMON_FIXED_OFFSET              0
 #define ADC_HV_VMON_RELATIVE_TRIP_SCALE       MACRO_DEC_TO_CAL_FACTOR_2(.2)
-#define ADC_HV_VMON_RELATIVE_TRIP_FLOOR       1000                     
-#define ADC_HV_VMON_RELATIVE_TRIP_COUNT       50                                // 500mS
+#define ADC_HV_VMON_RELATIVE_TRIP_FLOOR       4000                              //4kV
+#define ADC_HV_VMON_RELATIVE_TRIP_COUNT       20                                // 200ms (was 500mS)
 
 
 #define ADC_HV_IMON_FIXED_SCALE               .10419
@@ -181,30 +181,33 @@
 #define ADC_HTR_V_MON_FIXED_SCALE             .13875
 #define ADC_HTR_V_MON_FIXED_OFFSET            0
 #define	ADC_HTR_V_MON_OVER_LIMIT_ABSOLUTE     HTR_OV_ABS
-#define	ADC_HTR_V_MON_UNDER_LIMIT_ABSOLUTE    4000
-#define ADC_HTR_V_MON_ABSOLUTE_TRIP_TIME      50                                // 500mS
+#define ADC_HTR_V_MON_ABSOLUTE_TRIP_TIME      20                                // 200ms (was 500mS)
+#define ADC_HTR_V_MON_RELATIVE_TRIP_SCALE     MACRO_DEC_TO_CAL_FACTOR_2(.2)
+#define ADC_HTR_V_MON_RELATIVE_TRIP_FLOOR     1000                              //1.0V
+#define ADC_HTR_V_MON_RELATIVE_TRIP_TIME      20                                //200ms
 
 
 #define ADC_HTR_I_MON_FIXED_SCALE             .10419
 #define ADC_HTR_I_MON_FIXED_OFFSET            0
-#define ADC_HTR_I_MON_OVER_LIMIT_ABSOLUTE     HTR_OC_ABS                        // 1.750 Amps
-//#define ADC_HTR_I_MON_UNDER_LIMIT_ABSOLUTE    200                               // 0.200 Amps
-#define ADC_HTR_I_MON_ABSOLUTE_TRIP_TIME      50                                // 500mS
+#define ADC_HTR_I_MON_OVER_LIMIT_ABSOLUTE     HTR_OC_ABS                        
+#define ADC_HTR_I_MON_ABSOLUTE_TRIP_TIME      20                                // 500mS
+#define ADC_HTR_I_MON_RELATIVE_TRIP_SCALE     MACRO_DEC_TO_CAL_FACTOR_2(.2)
+#define ADC_HTR_I_MON_RELATIVE_TRIP_FLOOR     290                               //290mA
+#define ADC_HTR_I_MON_RELATIVE_TRIP_TIME      20                                //200ms
 
 
 #define ADC_TOP_V_MON_FIXED_SCALE             .69438
 #define ADC_TOP_V_MON_FIXED_OFFSET            0
 #define ADC_TOP_V_MON_RELATIVE_TRIP_SCALE     MACRO_DEC_TO_CAL_FACTOR_2(.2)
-#define ADC_TOP_V_MON_RELATIVE_TRIP_FLOOR     1000                              // 10 Volts
-#define ADC_TOP_V_MON_RELATIVE_TRIP_TIME      50                                // 500mS
-//#define ADC_TOP_V_MON_RELATIVE_TRIP_TIME      200                               // 2S
+#define ADC_TOP_V_MON_RELATIVE_TRIP_FLOOR     2000                              //20V (was 10 Volts)
+#define ADC_TOP_V_MON_RELATIVE_TRIP_TIME      10                                // 100ms (was 500mS)
 
 
 #define ADC_BIAS_V_MON_FIXED_SCALE            .34688
 #define ADC_BIAS_V_MON_FIXED_OFFSET           0
 #define ADC_BIAS_V_MON_OVER_LIMIT_ABSOLUTE    18000                             // -180V
 #define ADC_BIAS_V_MON_UNDER_LIMIT_ABSOLUTE   14000                             // -140V
-#define ADC_BIAS_V_MON_ABSOLUTE_TRIP_TIME     50                                // 500mS 
+#define ADC_BIAS_V_MON_ABSOLUTE_TRIP_TIME     20                                // 200ms (was 500mS) 
 
 
 #define ADC_24_V_MON_FIXED_SCALE              .41688
@@ -213,7 +216,6 @@
 
 #define ADC_TEMPERATURE_MON_FIXED_SCALE       .08331
 #define ADC_TEMPERATURE_MON_FIXED_OFFSET      20400
-
 
 
 // --------------------- Converter Logic Board DAC output Settings -------------- //
