@@ -190,7 +190,7 @@
 #define ADC_HTR_I_MON_FIXED_SCALE             .10419
 #define ADC_HTR_I_MON_FIXED_OFFSET            0
 #define ADC_HTR_I_MON_OVER_LIMIT_ABSOLUTE     HTR_OC_ABS                        
-#define ADC_HTR_I_MON_ABSOLUTE_TRIP_TIME      20                                // 500mS
+#define ADC_HTR_I_MON_ABSOLUTE_TRIP_TIME      20                                //200mS
 #define ADC_HTR_I_MON_RELATIVE_TRIP_SCALE     MACRO_DEC_TO_CAL_FACTOR_2(.2)
 #define ADC_HTR_I_MON_RELATIVE_TRIP_FLOOR     290                               //290mA
 #define ADC_HTR_I_MON_RELATIVE_TRIP_TIME      20                                //200ms

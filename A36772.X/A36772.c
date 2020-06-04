@@ -871,6 +871,7 @@ void ResetAllFaultInfo(void) {
   _FAULT_ADC_HTR_V_MON_OVER_ABSOLUTE = 0;
   _FAULT_ADC_HTR_V_MON_UNDER_RELATIVE = 0;
   _FAULT_ADC_HTR_I_MON_OVER_RELATIVE = 0;
+  _FAULT_ADC_HTR_I_MON_OVER_ABSOLUTE = 0;
   _FAULT_ADC_HTR_I_MON_UNDER_RELATIVE = 0;
   _FAULT_ADC_TOP_V_MON_OVER_RELATIVE = 0;
   _FAULT_ADC_TOP_V_MON_UNDER_RELATIVE = 0;
@@ -976,7 +977,8 @@ void ResetAllFaultInfo(void) {
 unsigned int CheckRampingHeaterFault(void) {
   unsigned int fault = 0;
   fault  = _FAULT_ADC_HTR_V_MON_OVER_ABSOLUTE;
-  fault |= _FAULT_ADC_HTR_I_MON_OVER_RELATIVE;
+  fault |= _FAULT_ADC_HTR_I_MON_OVER_ABSOLUTE;
+  //fault |= _FAULT_ADC_HTR_I_MON_OVER_RELATIVE;
   fault |= _FAULT_ADC_DIGITAL_GRID;
   fault |= _FPGA_GRID_MODULE_HARDWARE_FAULT;
   fault |= _FPGA_GRID_MODULE_OVER_VOLTAGE_FAULT;
@@ -1573,9 +1575,9 @@ void UpdateFaults(void) {
  */ 
     
     if (ETMAnalogCheckOverAbsolute(&global_data_A36772.input_htr_i_mon)) {  
-      _FAULT_ADC_HTR_I_MON_OVER_RELATIVE = 1;
+      _FAULT_ADC_HTR_I_MON_OVER_ABSOLUTE = 1;
     } else if (global_data_A36772.reset_active) {
-      _FAULT_ADC_HTR_I_MON_OVER_RELATIVE = 0;
+      _FAULT_ADC_HTR_I_MON_OVER_ABSOLUTE = 0;
     }
 	
 	if (ETMAnalogCheckOverRelative(&global_data_A36772.input_htr_i_mon)) {  
